@@ -1,0 +1,7 @@
+src/.classpath
+src/.project
+src/.settings/*
+src/target/*
+src/bin/*
+
+terraform/*
