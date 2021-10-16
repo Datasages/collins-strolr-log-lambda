@@ -2,7 +2,6 @@ package com.collins.railwaynet.strolrloglambda.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,10 +11,6 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
 import com.collins.railwaynet.strolrloglambda.entity.LogFile;
-import com.collins.railwaynet.strolrloglambda.util.HibernateUtil;
-
-import org.hibernate.Session;
-import org.hibernate.Transaction;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -30,7 +25,7 @@ import java.sql.SQLException;
 // CAS Log Path
 // /amtk-mdmlogs/vrex/VREX63/CPU-1/disk/var/log/app.VREX.63.20210919182601.log.gz
 // /amtk-mdmlogs/vrex/VREX63/CPU-2/disk/var/log/fault_history.2.20211013103455.log.gz
-
+///amtk-mdmlogs/vrex/VREX63/CPU-2/disk/var/log/aas.LOCO.XXXX.20210924033416.log.gz
 
 public class LogFileIndexerService implements RequestHandler< S3Event, String> {
 	private LambdaLogger logger;
@@ -237,25 +232,12 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
         preparedStatement.setString(5, logfile.getLogFilePath());
 
         System.out.println(preparedStatement);
-        // Step 3: Execute the query or update query
         preparedStatement.executeUpdate();
   } catch (SQLException e) {
 	  logger.log("SQL Exception");
 	  printSQLException(e);
   }
-    
-//    Transaction transaction = null;
-//    try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-//        transaction = session.beginTransaction();
-//        session.save(logfile);
-//        transaction.commit();
-//        session.close();
-//    } catch (Exception e) {
-//        if (transaction != null) {
-//            transaction.rollback();
-//        }
-//        e.printStackTrace();
-//    }                 
+                     
     return null;    
   }
   
