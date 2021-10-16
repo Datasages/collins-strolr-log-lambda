@@ -219,10 +219,15 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     LogFile logfile = new LogFile(mark, locoNumber, device, endTime, fileURL);    
     logger.log("Log file: " + logfile.toString());
     
+    //DB Connection
+    String dbUrl = System.getenv("DATABASE_URL");
+    String dbUser =  System.getenv("DATABASE_WRITER");
+    String dbPassword = System.getenv("DATABASE_PW");
+    
     try (Connection connection = DriverManager.getConnection(
-    		"jdbc:postgresql://m-ris-postgres-db.cjtxx3u946t0.us-east-1.rds.amazonaws.com:5432/strolr-logfiledb", 
-    		"strolr_logfiledb_writer", 
-    		"ygZ7XuENjsBHwVyy"
+    		dbUrl, 
+    		dbUser, 
+    		dbPassword
     	); 
     	PreparedStatement preparedStatement = connection.prepareStatement(SQL_STATEMENT)) {
         preparedStatement.setString(1, logfile.getMark());
