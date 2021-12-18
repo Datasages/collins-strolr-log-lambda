@@ -6,3 +6,4 @@ src/bin/*
 
 terraform/*
 .DS_Store
+.project
