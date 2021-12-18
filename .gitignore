@@ -5,3 +5,12 @@ src/target/*
 src/bin/*
 
 terraform/*
+.DS_Store
+.project
+src/.DS_Store
+src/src/.DS_Store
+src/src/main/.DS_Store
+src/src/test/.DS_Store
+src/src/test/resources/.DS_Store
+src/src/test/resources/logfiles/.DS_Store
+src/src/test/resources/logfiles/CPU-1/.DS_Store
