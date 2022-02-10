@@ -51,12 +51,12 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
           logger.log("Skipping undesired file " + srcKey);
           return "Skipped";
     }
-    Pattern mdmTmpFiles = Pattern.compile("*/tmp*");    
+    Pattern mdmTmpFiles = Pattern.compile(".*/tmp.*");    
     Matcher tmpMatcher = mdmTmpFiles.matcher(srcKey);
     if (tmpMatcher.matches()) {
         logger.log("Skipping MDM /tmp file " + srcKey);
         return "Skipped";
-  }
+    }
        
     //Split up file path on "/" in to array
     Pattern pathPattern = Pattern.compile(PATH_DELIMITER);
