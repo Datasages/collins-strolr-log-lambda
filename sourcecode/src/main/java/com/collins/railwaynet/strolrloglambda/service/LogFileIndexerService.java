@@ -70,7 +70,7 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     int locoNumber = 0;
     String device = "";   
     LocalDateTime endTime = null;
-    String fileURL = "https://" + srcBucket + ".s3.amazonaws.com" +"/" + srcKey; 
+    String fileURL = "https://s3.amazonaws.com" +"/"  + srcBucket + "/" + srcKey; 
     
     //find Device
     if (srcKey.contains("CPU-1")) {
