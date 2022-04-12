@@ -2,8 +2,12 @@ package com.collins.railwaynet.strolrloglambda.service;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAccessor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.joda.time.LocalDate;
+import org.joda.time.LocalTime;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.LambdaLogger;
@@ -11,6 +15,26 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
 import com.collins.railwaynet.strolrloglambda.entity.LogFile;
+
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.CopyObjectRequest;
+import com.amazonaws.services.s3.model.CopyObjectResult;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectTagging;
+import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.Tag;
+import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.S3Object;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -32,6 +56,10 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
 	private static String PATH_DELIMITER = "/";
     private static String FILE_DELIMITER = "\\.";
     DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final String logDateFormat = "dd_MMM_yyyy";
+    DateTimeFormatter logFileDateFormat = DateTimeFormatter.ofPattern(logDateFormat);
+    LocalDateTime logFileTime = LocalDateTime.now();
+    String logFileTimeString = logFileDateFormat.format(logFileTime);
     
     private static final String SQL_STATEMENT = "INSERT INTO logfileindex" +
             "  (mark, locoNumber, device, endTime, logFilePath) VALUES " +
@@ -57,6 +85,8 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
         logger.log("Skipping MDM /tmp file " + srcKey);
         return "Skipped";
     }
+    
+    
        
     //Split up file path on "/" in to array
     Pattern pathPattern = Pattern.compile(PATH_DELIMITER);
@@ -243,6 +273,49 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
 	  logger.log("SQL Exception");
 	  printSQLException(e);
   }
+    
+ // Amtrak specific replication request
+    Pattern amtkBucket = Pattern.compile("mdm.amtk");
+    Matcher amtkBucketMatch = amtkBucket.matcher(srcBucket);
+    if (amtkBucketMatch.matches()) {
+    	// Transform string and copy
+    	String topFolder = "Sorted_Logs_for_" + logFileTimeString + "/";
+    	String secondFolder = logfile.getMark() + "." + logfile.getLocoNumber() + "." + logFileTimeString + "/" + logfile.getDevice() + "/";
+    	String replicationKey = topFolder + secondFolder + logFileName;
+    	String replicationBucket = System.getenv("AWS_AMTK_REPLICATION_BUCKET_NAME");
+    	BasicAWSCredentials credentials = new BasicAWSCredentials(System.getenv("AWS_REPLICATION_ACCESS_ID"), System.getenv("AWS_REPLICATION_SECRET_KEY"));
+    	
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1).withCredentials(new AWSStaticCredentialsProvider(credentials))
+                .build();
+        String decodedSrcKey = "";
+        try {
+        	decodedSrcKey = URLDecoder.decode(srcKey, StandardCharsets.UTF_8.toString());
+        }
+        catch (Throwable e){
+        	logger.log("Cannot URL Decode: " + srcKey);
+        }
+        try {
+        	logger.log("log file: " + logFileName);
+        	logger.log("source bucket: " + srcBucket);
+        	logger.log("source key: " + srcKey);
+        	logger.log("replication bucket: " + replicationBucket);
+        	logger.log("replication key: " + replicationKey);
+        	
+        	CopyObjectRequest replicationRequest = new CopyObjectRequest(srcBucket, decodedSrcKey, replicationBucket, replicationKey);
+        	CopyObjectResult result = s3.copyObject(replicationRequest);
+        	logger.log("log file copied: " + logFileName);
+        	 
+        } catch (AmazonServiceException e) {
+        	logger.log("Amazon Service Exception triggered");
+            
+            System.out.println(e.getErrorMessage());
+        } finally {            
+           if(s3 != null) {
+               s3.shutdown();
+           }           
+       }
+    	   	
+    }
                      
     return null;    
   }
