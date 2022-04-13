@@ -36,6 +36,12 @@
 	    <artifactId>hibernate-core</artifactId>
 	    <version>5.5.7.Final</version>
 	</dependency>
+	<dependency>
+	    <groupId>org.json</groupId>
+	    <artifactId>json</artifactId>
+	    <version>20220320</version>
+	</dependency>
+	
 	
 	<!-- https://mvnrepository.com/artifact/junit/junit -->
 	<dependency>
