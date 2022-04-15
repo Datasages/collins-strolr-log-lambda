@@ -41,10 +41,6 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import org.json.JSONObject;
-
-import java.util.UUID;
-
 // AIM Log Path
 // /amtk-mdmlogs/amtk.l.amtk.53:mdm/2021/OCT/11/04:57-CPU-1/disk/var/log/app.AMTK.53.20211011081112.log.gz
 // /amtk-mdmlogs/amtk.l.amtk.53:mdm/2021/OCT/11/04:57-CPU-1/disk/var/log/fault_history.3.20210925224041.log.gz
@@ -68,10 +64,8 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     private static final String SQL_STATEMENT = "INSERT INTO logfileindex" +
             "  (mark, locoNumber, device, endTime, logFilePath) VALUES " +
             " (?, ?, ?, ?, ?);";
-    private static final boolean enableDataWarehouse = Boolean.parseBoolean(System.getenv("ENABLE_DATA_WAREHOUSE"));
-    private static final String dataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
-
-    @Override
+      
+  @Override
     public String handleRequest(S3Event event, Context ctx) {
       logger = ctx.getLogger();
         logger.log("Processing received File in S3: " + event);
@@ -279,32 +273,6 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
 	  logger.log("SQL Exception");
 	  printSQLException(e);
   }
-    
-//	Data Warehouse document
-    if (enableDataWarehouse) {
-    	JSONObject logfileMetaData = new JSONObject();
-    	logfileMetaData.put("mark", logfile.getMark());
-    	logfileMetaData.put("loconumber", logfile.getLocoNumber());
-    	logfileMetaData.put("device", logfile.getDevice());
-    	logfileMetaData.put("timestamp", logFile.getEndTime().toString());
-    	logfileMetaData.put("filename", logFileName);
-    	logfileMetaData.put("filesize", fileLength.toString());
-    	String jsonString = logFileMetaData.toString();
-        try {
-        	UUID fileUUID = UUID.randomUUID();
-            File jsonFile = new File(fileUUID.toString() + ".json");
-            FileWriter fileWriter = new FileWriter(jsonFile.getName(),true);
-            BufferedWriter bw = new BufferedWriter(fileWriter);
-            bw.write(jsonString);
-            bw.close();		
-    		s3Client.putObject(dataWarehouseBucket, "locologs/" + fileUUID.toString() + ".json", jsonFile);
-        }
-        catch (Exception e) {
-        	logger.log(e);
-        	logger.log("could not write file to DW Bucket");
-        }
-    	
-    }
     
  // Amtrak specific replication request
     Pattern amtkBucket = Pattern.compile("mdm.amtk");
