@@ -4,6 +4,9 @@ src/.settings/*
 src/target/*
 src/bin/*
 bin/*
+.classpath
+.settings/*
+dependency-reduced-pom.xml
 
 terraform/*
 .DS_Store
