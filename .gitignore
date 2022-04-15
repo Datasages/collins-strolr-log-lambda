@@ -3,6 +3,7 @@ src/.project
 src/.settings/*
 src/target/*
 src/bin/*
+bin/*
 
 terraform/*
 .DS_Store
