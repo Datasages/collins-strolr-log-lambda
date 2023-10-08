@@ -78,13 +78,13 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     private static final String dbPassword = System.getenv("DATABASE_PW");
     private static final boolean enableDataWarehouse = Boolean.parseBoolean(System.getenv("ENABLE_DATA_WAREHOUSE"));
     private static final String dataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
-    private static final String dataWarehouseAwsID = System.getenv("AWS_DW_ACCESS_ID");
-    private static final String dataWarehouseAwsSecret = System.getenv("AWS_DW_SECRET_KEY");   
+    //private static final String dataWarehouseAwsID = System.getenv("AWS_DW_ACCESS_ID");
+    //private static final String dataWarehouseAwsSecret = System.getenv("AWS_DW_SECRET_KEY");   
     //private static final String awsSrcID = System.getenv("AWS_SRC_ACCESS_ID");
     //private static final String awsSrcSecret = System.getenv("AWS_SRC_SECRET_KEY");
     //private static final String awsDataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
-    private static final String awsReplicationID = System.getenv("AWS_REPLICATION_ACCESS_ID");
-    private static final String awsReplicationSecret = System.getenv("AWS_REPLICATION_SECRET_KEY");
+    //private static final String awsReplicationID = System.getenv("AWS_REPLICATION_ACCESS_ID");
+    //private static final String awsReplicationSecret = System.getenv("AWS_REPLICATION_SECRET_KEY");
     private static final String awsReplicationBucketName = System.getenv("AWS_AMTK_REPLICATION_BUCKET_NAME");
     
     @Override
@@ -325,8 +325,9 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
         	ObjectMetadata dwObjectMetadata = new ObjectMetadata();
         	dwObjectMetadata.setContentType("application/json");
         	dwObjectMetadata.setContentLength(jsonStreamContentLength);
-        	BasicAWSCredentials dwCredentials = new BasicAWSCredentials(dataWarehouseAwsID, dataWarehouseAwsSecret);
-        	AmazonS3Client dwS3Client = new AmazonS3Client(dwCredentials);
+        	//BasicAWSCredentials dwCredentials = new BasicAWSCredentials(dataWarehouseAwsID, dataWarehouseAwsSecret);
+        	//AmazonS3Client dwS3Client = new AmazonS3Client(dwCredentials);
+        	AmazonS3Client dwS3Client = new AmazonS3Client();
         	PutObjectRequest jsonPutObjectRequest = new PutObjectRequest(
         			dataWarehouseBucket,"locologs/" + scac + "-" + fileUUID.toString() + ".json", jsonStream, dwObjectMetadata);
         	dwS3Client.putObject(jsonPutObjectRequest);
