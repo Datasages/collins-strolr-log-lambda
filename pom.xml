@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>net.railwaynet.logdelivery</groupId>
   <artifactId>strolr-log-lambda</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>1.0.2</version>
   <name>strolr-log-lambda</name>
   <description>Lambda function to parse logfile names for database index</description>
   <dependencies>

@@ -7,7 +7,7 @@ bin/*
 .classpath
 .settings/*
 dependency-reduced-pom.xml
-target/*
+target.*
 
 terraform/*
 .DS_Store
