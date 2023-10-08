@@ -72,6 +72,7 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
             "  (mark, locoNumber, device, endTime, logFilePath) VALUES " +
             " (?, ?, ?, ?, ?);";
     //DB Connection
+    private static final boolean enableReplication = Boolean.parseBoolean(System.getenv("ENABLE_REPLICATION"));
     private static final String dbUrl = System.getenv("DATABASE_URL");
     private static final String dbUser =  System.getenv("DATABASE_WRITER");
     private static final String dbPassword = System.getenv("DATABASE_PW");
@@ -79,9 +80,9 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     private static final String dataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
     private static final String dataWarehouseAwsID = System.getenv("AWS_DW_ACCESS_ID");
     private static final String dataWarehouseAwsSecret = System.getenv("AWS_DW_SECRET_KEY");   
-    private static final String awsSrcID = System.getenv("AWS_SRC_ACCESS_ID");
-    private static final String awsSrcSecret = System.getenv("AWS_SRC_SECRET_KEY");
-    private static final String awsDataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
+    //private static final String awsSrcID = System.getenv("AWS_SRC_ACCESS_ID");
+    //private static final String awsSrcSecret = System.getenv("AWS_SRC_SECRET_KEY");
+    //private static final String awsDataWarehouseBucket = System.getenv("DATA_WAREHOUSE_BUCKET");
     private static final String awsReplicationID = System.getenv("AWS_REPLICATION_ACCESS_ID");
     private static final String awsReplicationSecret = System.getenv("AWS_REPLICATION_SECRET_KEY");
     private static final String awsReplicationBucketName = System.getenv("AWS_AMTK_REPLICATION_BUCKET_NAME");
@@ -102,8 +103,8 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
     	logger.log("Cannot URL Decode: " + srcKey);
     }
     
-	BasicAWSCredentials srcCredentials = new BasicAWSCredentials(awsSrcID, awsSrcSecret);
-	AmazonS3Client srcS3Client = new AmazonS3Client(srcCredentials);
+	//BasicAWSCredentials srcCredentials = new BasicAWSCredentials(awsSrcID, awsSrcSecret);
+	AmazonS3Client srcS3Client = new AmazonS3Client(); //srcCredentials);
 	Long fileLength = srcS3Client.getObjectMetadata(srcBucket,decodedSrcKey).getContentLength();
 
     
@@ -341,15 +342,16 @@ public class LogFileIndexerService implements RequestHandler< S3Event, String> {
  // Amtrak specific replication request
     Pattern amtkBucket = Pattern.compile("mdm.amtk");
     Matcher amtkBucketMatch = amtkBucket.matcher(srcBucket);
-    if (amtkBucketMatch.matches()) {
+    if (enableReplication && amtkBucketMatch.matches()) {
     	// Transform string and copy
     	String topFolder = "Sorted_Logs_for_" + logFileTimeString + "/";
     	String secondFolder = logfile.getMark() + "." + logfile.getLocoNumber() + "." + logFileTimeString + "/" + logfile.getDevice() + "/";
     	String replicationKey = topFolder + secondFolder + logFileName;
     	String replicationBucket = awsReplicationBucketName;
-    	BasicAWSCredentials credentials = new BasicAWSCredentials(awsReplicationID, awsReplicationSecret);
+    	//BasicAWSCredentials credentials = new BasicAWSCredentials(awsReplicationID, awsReplicationSecret);
     	
-        AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1).withCredentials(new AWSStaticCredentialsProvider(credentials))
+        AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_1)
+        		//.withCredentials(new AWSStaticCredentialsProvider(credentials))
                 .build();
 
         try {
