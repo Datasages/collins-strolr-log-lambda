@@ -38,7 +38,7 @@ public class LogFilePathParser implements PathParser {
         String mark = "";
         int locoNumber = 0;
         String device = extractDevice(decodedKey);
-        LocalDateTime endTime = null;
+        LocalDateTime endTime;
         String fileUrl = "https://s3.amazonaws.com/" + bucket + "/" + s3Key;
 
         if (decodedKey.contains("mdm")) {
@@ -47,14 +47,14 @@ public class LogFilePathParser implements PathParser {
                 for (String folder : pathParts) {
                     Matcher matcher = AIM_MDM_FOLDER_PATTERN.matcher(folder);
                     if (matcher.matches()) {
-                        mark = matcher.group(1); // Preserve case, e.g., AMTK
+                        mark = matcher.group(1).toUpperCase(); // Preserve case, e.g., AMTK
                         locoNumber = Integer.parseInt(matcher.group(2)); // e.g., 10
                         break;
                     }
                 }
                 endTime = parseEndTime(fileParts, logFileName);
             } else {
-                mark = fileParts[1]; // Preserve case, e.g., AMTK
+                mark = fileParts[1].toUpperCase(); // Preserve case, e.g., AMTK
                 locoNumber = Integer.parseInt(fileParts[2]);
                 endTime = LocalDateTime.parse(fileParts[3], DATE_FORMATTER);
             }

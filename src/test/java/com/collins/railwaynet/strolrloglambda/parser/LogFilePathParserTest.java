@@ -42,7 +42,7 @@ class LogFilePathParserTest {
         assertEquals(LocalDateTime.of(2025, 6, 5, 4, 21, 30), logFile.getEndTime());
     }
 
-    /* 
+    
     @Test
     void testParse_HistoryFile() {
         String s3Key = "amtk-mdmlogs/amtk.l.amtk.10:mdm/2025/JUN/05/01:24-CPU-3/disk/var/log/fault_history.3.20250605042130.log.gz";
@@ -56,7 +56,7 @@ class LogFilePathParserTest {
         assertEquals("CPU-3", logFile.getDevice());
         assertEquals(LocalDateTime.of(2025, 6, 5, 4, 21, 30), logFile.getEndTime());
     }
-*/
+
     @Test
     void testParse_SkipInvalidKey() {
         String s3Key = "amtk-mdmlogs/tmp/invalid.txt";
