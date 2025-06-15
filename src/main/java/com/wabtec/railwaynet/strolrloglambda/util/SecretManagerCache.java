@@ -1,13 +1,15 @@
+// Copyright Wabtec Inc. 2025. All rights reserved
+// @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.util;
-
-import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
-import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 /**
  * Simple thread-safe in-memory cache for Secrets Manager (pure SDK v2).

@@ -1,3 +1,4 @@
+// Copyright Wabtec Inc. 2025. All rights reserved
 package com.wabtec.railwaynet.strolrloglambda.util;
 
 public class CustomS3EventNotificationRecord {

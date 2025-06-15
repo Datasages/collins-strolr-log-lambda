@@ -1,3 +1,5 @@
+// Copyright Wabtec Inc. 2025. All rights reserved
+// @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -25,6 +27,7 @@ class S3ServiceImplTest {
     private S3ServiceImpl service;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setUp() {
         mockS3 = mock(S3Client.class);
         service = new S3ServiceImpl(mockS3);

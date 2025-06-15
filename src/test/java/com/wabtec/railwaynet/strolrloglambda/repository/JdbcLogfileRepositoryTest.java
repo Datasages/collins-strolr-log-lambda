@@ -1,3 +1,5 @@
+// Copyright Wabtec Inc. 2025. All rights reserved
+// @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.repository;
 
 import java.sql.Connection;
@@ -30,6 +32,7 @@ class JdbcLogFileRepositoryTest {
     private static Connection connection;
 
 @BeforeAll
+@SuppressWarnings("unused")
 static void setupDatabase() throws SQLException {
     connection = DriverManager.getConnection("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE");
     connection.createStatement().execute("""
@@ -45,6 +48,7 @@ static void setupDatabase() throws SQLException {
 }
 
     @AfterAll
+    @SuppressWarnings("unused")
     static void cleanup() throws SQLException {
         connection.close();
     }
