@@ -6,12 +6,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,7 +47,14 @@ class LogFileIndexerHandlerTest {
         mockContext = mock(Context.class);
         var mockLogger = mock(com.amazonaws.services.lambda.runtime.LambdaLogger.class);
         when(mockContext.getLogger()).thenReturn(mockLogger);
+         System.setProperty("POWERTOOLS_LOG_LEVEL", "DEBUG"); 
     }
+@AfterEach
+    @SuppressWarnings("unused")
+    void tearDown() {
+        System.clearProperty("POWERTOOLS_LOG_LEVEL");
+    }
+
 
     @Test
     void handle_skipsWhenParserReturnsNull() throws Exception {
@@ -154,6 +163,8 @@ void handle_processesRealisticMdmPath() throws Exception {
         });
         assertTrue(ex.getMessage().contains("REPLICATION_BUCKET_NAME"));
     }
+
+
 
     private static S3Event loadEvent() throws IOException {
         String json = Files.readString(Path.of("src/test/resources/s3-event.json"));

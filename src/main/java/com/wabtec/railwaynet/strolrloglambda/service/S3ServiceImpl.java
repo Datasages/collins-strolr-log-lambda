@@ -10,10 +10,15 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
+import org.slf4j.LoggerFactory;
+import software.amazon.lambda.powertools.logging.Logging;
+
 /**
  * AWS SDK v2-based S3 service for file metadata and replication.
  */
 public class S3ServiceImpl implements S3Service {
+
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(S3ServiceImpl.class);
 
     private final S3Client s3;
 
@@ -42,6 +47,7 @@ public class S3ServiceImpl implements S3Service {
     /**
      * Copies an object (≤5GB) from source to destination in S3.
      */
+    @Logging(logEvent = false)
     @Override
     public void replicateFile(String srcBucket, String srcKey, String destBucket, String destKey) {
         try {
@@ -53,7 +59,9 @@ public class S3ServiceImpl implements S3Service {
                     .destinationKey(destKey)
                     .build()
             );
+            LOGGER.debug("Replicated S3 object from {}/{} to {}/{}", srcBucket, srcKey, destBucket, destKey);
         } catch (S3Exception e) {
+            LOGGER.warn("Failed to replicate S3 object from {}/{} to {}/{}", srcBucket, srcKey, destBucket, destKey, e);
             throw new RuntimeException("Error replicating S3 object from " +
                 srcBucket + "/" + srcKey + " to " + destBucket + "/" + destKey, e);
         }

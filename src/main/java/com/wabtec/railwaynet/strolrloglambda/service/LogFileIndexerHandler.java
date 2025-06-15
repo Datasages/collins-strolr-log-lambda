@@ -2,10 +2,22 @@
 // @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.service;
 
+import org.slf4j.LoggerFactory;
+
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
+
+import software.amazon.lambda.powertools.logging.Logging;
+import software.amazon.lambda.powertools.metrics.FlushMetrics;
+import software.amazon.lambda.powertools.metrics.Metrics;
+import software.amazon.lambda.powertools.metrics.MetricsFactory;
+import software.amazon.lambda.powertools.metrics.model.MetricUnit;
+import software.amazon.lambda.powertools.tracing.Tracing;
+
+
+
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 import com.wabtec.railwaynet.strolrloglambda.parser.LogFilePathParser;
 import com.wabtec.railwaynet.strolrloglambda.parser.PathParser;
@@ -24,6 +36,8 @@ import software.amazon.awssdk.services.s3.S3Client;
  */
 public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
 
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(LogFileIndexerHandler.class);
+
     private final PathParser parser;
     private final LogFileRepository repo;
     private final S3Service s3Service;
@@ -40,6 +54,8 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
     /**
      * Cold-start constructor: reads env vars and initializes real dependencies.
      */
+    private static final Metrics metrics = MetricsFactory.getMetricsInstance();
+
     public LogFileIndexerHandler() {
     this.parser = new LogFilePathParser();
     this.repo = new JdbcLogFileRepository();
@@ -50,8 +66,10 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
 
     String enable = System.getenv("ENABLE_REPLICATION");
     this.enableReplication = Boolean.parseBoolean(enable != null ? enable : "false");
+    LOGGER.debug(enableReplication ? "Replication is enabled" : "Replication is disabled");
 
     this.replicationBucket = System.getenv("REPLICATION_BUCKET_NAME");
+    LOGGER.debug("Replication bucket: {}", replicationBucket);
     if (enableReplication && (replicationBucket == null || replicationBucket.isBlank())) {
         throw new IllegalStateException("ENABLE_REPLICATION is true but REPLICATION_BUCKET_NAME is missing");
     }
@@ -78,38 +96,48 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
         this.replicationBucket = replicationBucket;
     }
 
+@Logging(logEvent = false)
+@Tracing
+@FlushMetrics(namespace = "RailwayNet", service = "logfile-indexer")
 @Override
 public String handleRequest(S3Event event, Context context) {
+    metrics.addDimension("environment", "prod");
+    String scac = System.getenv("SCAC");
+    if (scac != null && !scac.isBlank()) {
+        metrics.addDimension("scac", scac);
+    }
     S3EventNotificationRecord rec = event.getRecords().get(0);
     String bucket = rec.getS3().getBucket().getName();
     String key = rec.getS3().getObject().getKey();
     String decodedKey = java.net.URLDecoder.decode(key, java.nio.charset.StandardCharsets.UTF_8);
 
+    LogFile lf;
     try {
-        @SuppressWarnings("unused")
-        LogFile lf = parser.parse(decodedKey, bucket);
+        lf = parser.parse(decodedKey, bucket);
+        LOGGER.debug("Parsed key: {} from bucket: {}", decodedKey, bucket);
+        if (lf == null) {
+            LOGGER.warn("Skipping file because parser returned null for key: {} from bucket: {}", decodedKey, bucket);
+            return "Skipped";
+        }
     } catch (Exception ex) {
-        context.getLogger().log("Unparsable key: " + key + " — " + ex.getMessage());
-        return "Skipped";
-    }
-
-    LogFile lf = parser.parse(decodedKey, bucket);
-    if (lf == null) {
-        context.getLogger().log("Skipping undesired file: " + key);
+        LOGGER.warn("Skipping unparsable key: {} from bucket: {}", decodedKey, bucket);
         return "Skipped";
     }
 
     repo.save(lf);
+    LOGGER.debug("Saved log file metadata to database: {}", lf);
 
+    metrics.addMetric("LogFileProcessed", 1, MetricUnit.COUNT);
     @SuppressWarnings("unused")
     long size = s3Service.getFileSize(bucket, decodedKey);
 
     if (enableReplication) {
         s3Service.replicateFile(bucket, decodedKey, replicationBucket, extractFileName(decodedKey));
-        context.getLogger().log("Replicated file to bucket: " + replicationBucket);
+        LOGGER.debug("Replicated file {} from bucket {} to bucket {}", decodedKey, bucket, replicationBucket);
+        metrics.addMetric("LogFileReplicated", 1, MetricUnit.COUNT);
     }
 
-    context.getLogger().log("Processed log file: " + lf);
+    LOGGER.debug("Completed processing log file: {}", lf);
     return "Success";
 }
 

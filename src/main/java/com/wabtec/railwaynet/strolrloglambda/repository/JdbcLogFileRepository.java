@@ -6,10 +6,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import static java.util.Objects.requireNonNull;
-
 import javax.sql.DataSource;
 
 import org.postgresql.ds.PGSimpleDataSource;
+import org.slf4j.LoggerFactory;
+import software.amazon.lambda.powertools.logging.Logging;
 
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
@@ -20,6 +21,8 @@ import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
  * - injected DataSource for tests/integration
  */
 public class JdbcLogFileRepository implements LogFileRepository {
+
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(JdbcLogFileRepository.class);
 
     private static final String SQL =
         "INSERT INTO logfileindex " +
@@ -49,6 +52,7 @@ public class JdbcLogFileRepository implements LogFileRepository {
         this.dataSource = requireNonNull(dataSource, "DataSource must not be null");
     }
 
+    @Logging(logEvent = false)
     @Override
     public void save(LogFile file) {
         try (Connection conn = dataSource.getConnection();
@@ -60,8 +64,9 @@ public class JdbcLogFileRepository implements LogFileRepository {
             ps.setObject(4, file.getEndTime());
             ps.setString(5, file.getLogFilePath());
             ps.executeUpdate();
-
+            LOGGER.debug("Saved LogFile Metadata to Database: {}", file);
         } catch (SQLException e) {
+            LOGGER.error("Error saving LogFile to Database", e);
             throw new RuntimeException("Failed to save LogFile to DB", e);
         }
     }
