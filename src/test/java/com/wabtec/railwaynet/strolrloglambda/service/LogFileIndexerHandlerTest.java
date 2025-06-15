@@ -35,6 +35,7 @@ class LogFileIndexerHandlerTest {
     private Context mockContext;
 
     @BeforeEach
+    @SuppressWarnings("unused")
     void setup() {
         mockParser = mock(PathParser.class);
         mockRepo = mock(LogFileRepository.class);
@@ -144,6 +145,7 @@ void handle_processesRealisticMdmPath() throws Exception {
     }
 
     @Test
+    @SuppressWarnings("ResultOfObjectAllocationIgnored")
     void constructor_replicationEnabled_withoutBucket_throws() {
         IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
             new LogFileIndexerHandler(mockParser, mockRepo, mockS3Service, true, null);
