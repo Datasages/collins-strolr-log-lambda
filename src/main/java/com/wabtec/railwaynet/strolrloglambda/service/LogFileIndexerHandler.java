@@ -84,6 +84,7 @@ public String handleRequest(S3Event event, Context context) {
     String decodedKey = java.net.URLDecoder.decode(key, java.nio.charset.StandardCharsets.UTF_8);
 
     try {
+        @SuppressWarnings("unused")
         LogFile lf = parser.parse(decodedKey, bucket);
     } catch (Exception ex) {
         context.getLogger().log("Unparsable key: " + key + " — " + ex.getMessage());
@@ -98,6 +99,7 @@ public String handleRequest(S3Event event, Context context) {
 
     repo.save(lf);
 
+    @SuppressWarnings("unused")
     long size = s3Service.getFileSize(bucket, decodedKey);
 
     if (enableReplication) {
@@ -115,6 +117,7 @@ public String handleRequest(S3Event event, Context context) {
         return (idx >= 0) ? key.substring(idx + 1) : key;
     }
 
+    @SuppressWarnings("unused")
     private static String requireEnv(String key) {
         String val = System.getenv(key);
         if (val == null || val.isBlank()) {

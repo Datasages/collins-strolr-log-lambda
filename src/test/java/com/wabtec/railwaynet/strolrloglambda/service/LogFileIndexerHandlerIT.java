@@ -63,6 +63,7 @@ class LogFileIndexerHandlerIT {
     static S3Client s3Client;
 
     @BeforeAll
+    @SuppressWarnings("unused")
     static void initContainers() throws Exception {
         ds = createDataSource(postgres);
         createLogTable(ds);
@@ -70,6 +71,7 @@ class LogFileIndexerHandlerIT {
     }
 
     @AfterEach
+    @SuppressWarnings({"unused", "UseSpecificCatch"})
     void cleanUpBuckets() {
         s3Client.listBuckets().buckets().forEach(bucket -> {
             try {
@@ -83,11 +85,11 @@ class LogFileIndexerHandlerIT {
     }
 
     private static DataSource createDataSource(PostgreSQLContainer<?> pg) {
-        PGSimpleDataSource ds = new PGSimpleDataSource();
-        ds.setUrl(pg.getJdbcUrl());
-        ds.setUser(pg.getUsername());
-        ds.setPassword(pg.getPassword());
-        return ds;
+        PGSimpleDataSource dataSource = new PGSimpleDataSource();
+        dataSource.setUrl(pg.getJdbcUrl());
+        dataSource.setUser(pg.getUsername());
+        dataSource.setPassword(pg.getPassword());
+        return dataSource;
     }
 
     private static void createLogTable(DataSource ds) throws SQLException {
@@ -159,6 +161,7 @@ class LogFileIndexerHandlerIT {
     }
 
     @Test
+    @SuppressWarnings("UseSpecificCatch")
     void testIntegration_noReplication() throws Exception {
         try {
             s3Client.deleteBucket(b -> b.bucket("dest-bucket"));
@@ -209,6 +212,7 @@ class LogFileIndexerHandlerIT {
     }
 
    @Test
+    @SuppressWarnings("UseSpecificCatch")
 void testIntegration_unparsableKey_skipped() throws Exception {
     try {
         s3Client.deleteBucket(b -> b.bucket("dest-bucket"));
