@@ -156,11 +156,21 @@
             <artifactId>aspectjrt</artifactId>
             <version>1.9.22</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>2.19.0</version>
+        </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.15.2</version>
+            <version>2.19.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>2.19.0</version>
         </dependency>
 
         <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
@@ -223,12 +233,7 @@
             <version>2.2.220</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.15.2</version>
-            <scope>test</scope>
-        </dependency>
+
 
 
 
@@ -340,10 +345,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.5.0</version>
+                <version>3.4.1</version>
                 <executions>
                     <execution>
-                        <id>shade-uber-jar</id>
                         <phase>package</phase>
                         <goals>
                             <goal>shade</goal>
@@ -352,7 +356,7 @@
                             <createDependencyReducedPom>false</createDependencyReducedPom>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.collins.railwaynet.strolrloglambda.service.LogFileIndexerService</mainClass>
+                                    <mainClass>com.wabtec.railwaynet.strolrloglambda.service.LogFileIndexerHandler</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
