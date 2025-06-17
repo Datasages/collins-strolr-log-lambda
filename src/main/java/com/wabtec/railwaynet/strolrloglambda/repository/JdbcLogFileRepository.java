@@ -16,7 +16,6 @@ import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
 
 
-
 /**
  * JDBC repository that loads DB connection details from:
  * - env/Secrets for production (no-arg constructor)
