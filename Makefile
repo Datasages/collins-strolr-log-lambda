@@ -1,6 +1,7 @@
-JAR=target/strolrloglambda-2.0-SNAPSHOT.jar
+SCAC=AMTK
+JAR=target/strolrloglambda-2.0.1.jar
 BUCKET=lambda-artifacts
-KEY=strolrloglambda-2.0-SNAPSHOT.jar
+KEY=strolrloglambda-2.0.1.jar
 FUNC_NAME=LogFileIndexerHandler
 ROLE_ARN=arn:aws:iam::000000000000:role/lambda-ex
 SECRET_NAME=DB_PASSWORD_SECRET_NAME
@@ -11,12 +12,27 @@ POSTGRES_DB=postgres
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=super-secret-password
 
+SECRET_CACHE_FILE := src/main/java/com/wabtec/railwaynet/strolrloglambda/util/SecretManagerCache.java
+
+
 # Entry point
-all: build upload secrets deploy wait-for-lambda invoke
+all: build initdb upload-test-log upload secrets deploy wait-for-lambda invoke
 
 # Build the fat jar
 build:
+	sed -i '' 's/"default-db-password"/"XXXX"/g' $(SECRET_CACHE_FILE)
 	mvn clean package
+	sed -i '' 's/"XXXX"/"default-db-password"/g' $(SECRET_CACHE_FILE)
+
+initdb:
+	docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) < scripts/schema.sql
+
+upload-test-log:
+	mkdir -p test-data
+	echo "test log file content" > test-data/sample.log.gz
+	awslocal s3api create-bucket --bucket test-bucket || true
+	awslocal s3 cp test-data/sample.log.gz \
+		s3://test-bucket/amtk.l.amtk.10:mdm/2025/JUN/05/01:24-CPU-3/disk/var/log/app.AMTK.10.20250605042130.log.gz
 
 
 
@@ -42,21 +58,26 @@ deploy:
 		--role $(ROLE_ARN) \
 		--environment Variables="{\
 POWERTOOLS_LOG_LEVEL=DEBUG,\
-ENABLE_REPLICATION=false,\
+ENABLE_REPLICATION=true,\
+REPLICATION_BUCKET_NAME=ptc-p-logs, \
 SCAC=AMTK,\
 DB_URL=jdbc:postgresql://host.docker.internal:5432/$(POSTGRES_DB),\
 DB_USER=$(POSTGRES_USER),\
-DB_PASSWORD_SECRET_NAME=$(SECRET_NAME)}"
+DB_PASSWORD_SECRET_NAME=$(SECRET_NAME)}"  > /dev/null
 
 # Wait for Lambda to become active
 .PHONY: wait
 wait-for-lambda:
 	@echo "Waiting for Lambda to become active..."
-	@until awslocal lambda get-function --function-name $(LAMBDA_NAME) 2>/dev/null | jq -r '.Configuration.State' | grep -q Active; do \
+	@timeout=60; \
+	while [ $$timeout -gt 0 ]; do \
+		state=$$(awslocal lambda get-function --function-name $(FUNC_NAME) 2>/dev/null | jq -r '.Configuration.State'); \
+		if [ "$$state" = "Active" ]; then echo "Lambda is active!"; exit 0; fi; \
 		echo "...still waiting..."; \
-		sleep 2; \
-	done
-	@echo "Lambda is active!"
+		sleep 2; timeout=$$((timeout - 2)); \
+	done; \
+	echo "Timed out waiting for Lambda to become active"; exit 1
+
 
 
 # Invoke Lambda with sample event
@@ -67,6 +88,18 @@ invoke:
 		--payload fileb://test/s3-event.json \
 		out/response.json
 	cat out/response.json | jq
+
+get-logs:
+	@echo "Fetching logs for Lambda function $(FUNC_NAME)..."
+	@log_group="/aws/lambda/$(FUNC_NAME)"; \
+	log_stream=$$(awslocal logs describe-log-streams --log-group-name $$log_group \
+		--order-by LastEventTime --descending \
+		--query 'logStreams[0].logStreamName' --output text); \
+	echo "Using log stream: $$log_stream"; \
+	awslocal logs get-log-events \
+		--log-group-name $$log_group \
+		--log-stream-name "$$log_stream" \
+		--query 'events[*].message' --output text
 
 # Cleanup everything
 clean:
