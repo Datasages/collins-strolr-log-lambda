@@ -1,0 +1,23 @@
+<configuration>
+
+  <!-- Console appender -->
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <!-- Suppress credential resolution noise -->
+  <logger name="software.amazon.awssdk.auth.credentials" level="WARN" />
+
+  <!-- AWS SDK internals: keep it quiet unless needed -->
+  <logger name="software.amazon.awssdk" level="WARN" />
+  <logger name="software.amazon.awssdk.request" level="INFO" />
+  <logger name="software.amazon.awssdk.core.internal" level="WARN" />
+
+  <!-- Your application logs -->
+  <root level="DEBUG">
+    <appender-ref ref="CONSOLE" />
+  </root>
+
+</configuration>

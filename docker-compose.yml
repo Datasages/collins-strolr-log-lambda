@@ -1,0 +1,29 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=lambda,s3,secretsmanager,iam, logs, cloudwatch
+      - DEBUG=1
+    volumes:
+      - "./.localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - lambda-net
+
+  postgres:
+    image: postgres:15
+    container_name: lambda-test-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: super-secret-password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - lambda-net
+
+networks:
+  lambda-net:
+    driver: bridge

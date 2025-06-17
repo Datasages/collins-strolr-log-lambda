@@ -1,0 +1,20 @@
+stages:
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  DOCKER_HOST: tcp://docker:2375/
+
+test:
+  stage: test
+  image: maven:3.9.6-eclipse-temurin-17
+  services:
+    - docker:dind
+  before_script:
+    - apt-get update && apt-get install -y docker.io
+  script:
+    - mvn clean verify --batch-mode --fail-at-end
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .m2/repository
