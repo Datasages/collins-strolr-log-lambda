@@ -70,6 +70,7 @@ public class S3ServiceImpl implements S3Service {
                     .destinationKey(destKey)
                     .build()
             );
+            LOGGER.debug("Destination Bucket: {}", destBucket);
             LOGGER.debug("Replicated S3 object from {}/{} to {}/{}", srcBucket, srcKey, destBucket, destKey);
         } catch (S3Exception e) {
             LOGGER.warn("Failed to replicate S3 object from {}/{} to {}/{}", srcBucket, srcKey, destBucket, destKey, e);
