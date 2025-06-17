@@ -75,3 +75,11 @@ PostgreSQL (for log metadata)
 AWS S3 (via LocalStack)
 
 Refer to LogFileIndexerHandlerIT for setup and assertions.
+
+## Testing
+
+Look at `Makefile`. you can do a full loop test by:
+
+- `docker-compose up -d`. It launches postgres and testcontainers in Docker
+- `make all`. This will prep the database, build the lambda function. Inject it in to awslocal and run a test against it.
+- `make get-logs` after running `make all`, it will kick out the applications logs.
