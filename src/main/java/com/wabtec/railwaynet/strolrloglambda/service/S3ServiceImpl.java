@@ -2,7 +2,12 @@
 // @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.service;
 
+import java.util.Map;
 import java.util.Objects;
+
+import org.slf4j.LoggerFactory;
+
+import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
@@ -10,25 +15,26 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import org.slf4j.LoggerFactory;
-import software.amazon.lambda.powertools.logging.Logging;
-
 /**
  * AWS SDK v2-based S3 service for file metadata and replication.
  */
 public class S3ServiceImpl implements S3Service {
-
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(S3ServiceImpl.class);
 
     private final S3Client s3;
+    private final Map<String, ReplicationPathProcessor> processorMap;
+    private final String scac;
 
-    public S3ServiceImpl(S3Client s3Client) {
+    public S3ServiceImpl(S3Client s3Client, String scac, ReplicationPathProcessor processor) {
         this.s3 = Objects.requireNonNull(s3Client, "s3Client");
+        this.scac = scac;
+        if (scac != null && processor != null) {
+            this.processorMap = Map.of(scac, processor);
+        } else {
+            this.processorMap = Map.of();
+        }
     }
 
-    /**
-     * Retrieves size of the S3 object via a HEAD request.
-     */
     @Override
     public long getFileSize(String bucket, String key) {
         try {
@@ -43,13 +49,18 @@ public class S3ServiceImpl implements S3Service {
         }
     }
 
-
-    /**
-     * Copies an object (≤5GB) from source to destination in S3.
-     */
-    @Logging(logEvent = false)
     @Override
-    public void replicateFile(String srcBucket, String srcKey, String destBucket, String destKey) {
+    public void replicateFile(LogFile lf, String srcBucket, String srcKey, String destBucket, String destKey) {
+        String scacEnv = System.getenv("SCAC");
+
+        ReplicationPathProcessor processor = (scacEnv != null) ? processorMap.get(scacEnv) : null;
+
+        if (processor != null) {
+            destKey = processor.getReplicationPath(lf)  + destKey;
+        } else {
+            LOGGER.warn("No replication path processor found for SCAC: {}", scac);
+        }
+
         try {
             s3.copyObject(
                 CopyObjectRequest.builder()
@@ -67,5 +78,3 @@ public class S3ServiceImpl implements S3Service {
         }
     }
 }
-    
-// This code implements the S3Service interface using AWS SDK v2, providing methods to get file size and replicate files in S3.

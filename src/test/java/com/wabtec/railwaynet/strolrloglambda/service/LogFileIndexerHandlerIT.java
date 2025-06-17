@@ -132,7 +132,7 @@ class LogFileIndexerHandlerIT {
         var handler = new LogFileIndexerHandler(
             new LogFilePathParser(),
             new JdbcLogFileRepository(ds),
-            new S3ServiceImpl(s3Client),
+            new S3ServiceImpl(s3Client, "AMTK", new AmtkReplicationPathProcessor()),
             true,
             "dest-bucket"
         );
@@ -181,7 +181,7 @@ class LogFileIndexerHandlerIT {
         var handler = new LogFileIndexerHandler(
             new LogFilePathParser(),
             new JdbcLogFileRepository(ds),
-            new S3ServiceImpl(s3Client),
+            new S3ServiceImpl(s3Client, "AMTK", new AmtkReplicationPathProcessor()),
             false,  // replication disabled
             null    // no dest bucket needed
         );
@@ -229,7 +229,7 @@ void testIntegration_unparsableKey_skipped() throws Exception {
     var handler = new LogFileIndexerHandler(
         new LogFilePathParser(),
         new JdbcLogFileRepository(ds),
-        new S3ServiceImpl(s3Client),
+        new S3ServiceImpl(s3Client, "AMTK", new AmtkReplicationPathProcessor()),
         true,
         "dest-bucket"
     );

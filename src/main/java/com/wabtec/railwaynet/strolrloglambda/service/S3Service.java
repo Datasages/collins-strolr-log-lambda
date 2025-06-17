@@ -2,6 +2,8 @@
 // @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.service;
 
+import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
+
 public interface S3Service {
     /**
      * Retrieve the size (in bytes) of the specified S3 object using a HEAD request.
@@ -22,5 +24,5 @@ public interface S3Service {
      * @param destKey     destination object key
      * @throws RuntimeException on AWS SDK or network errors
      */
-    void replicateFile(String srcBucket, String srcKey, String destBucket, String destKey);
+    void replicateFile(LogFile lf, String srcBucket, String srcKey, String destBucket, String destKey);
 }

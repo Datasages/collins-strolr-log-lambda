@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -30,55 +31,48 @@ class S3ServiceImplTest {
     @SuppressWarnings("unused")
     void setUp() {
         mockS3 = mock(S3Client.class);
-        service = new S3ServiceImpl(mockS3);
+        service = new S3ServiceImpl(mockS3, null, null); // No replication logic needed
     }
 
-@Test
-void getFileSize_returnsContentLength() {
-    // Arrange: explicitly create the HeadObjectRequest
-    HeadObjectRequest expectedReq = HeadObjectRequest.builder()
-        .bucket("my-bucket")
-        .key("path/to/key")
-        .build();
 
-    when(mockS3.headObject(eq(expectedReq)))
-        .thenReturn(HeadObjectResponse.builder()
-            .contentLength(4567L)
-            .build());
+    @Test
+    void getFileSize_returnsContentLength() {
+        HeadObjectRequest expectedReq = HeadObjectRequest.builder()
+            .bucket("my-bucket")
+            .key("path/to/key")
+            .build();
 
-    // Act
-    long size = service.getFileSize("my-bucket", "path/to/key");
+        when(mockS3.headObject(eq(expectedReq)))
+            .thenReturn(HeadObjectResponse.builder()
+                .contentLength(4567L)
+                .build());
 
-    // Assert
-    assertEquals(4567L, size);
-    verify(mockS3).headObject(eq(expectedReq));
-}
+        long size = service.getFileSize("my-bucket", "path/to/key");
 
+        assertEquals(4567L, size);
+        verify(mockS3).headObject(eq(expectedReq));
+    }
 
-@Test
-void replicateFile_performsCopy() {
-    // Arrange: build the exact CopyObjectRequest
-    CopyObjectRequest expectedReq = CopyObjectRequest.builder()
-        .sourceBucket("src-bucket")
-        .sourceKey("srcKey")
-        .destinationBucket("dest-bucket")
-        .destinationKey("destKey")
-        .build();
-
-    when(mockS3.copyObject(eq(expectedReq)))
-        .thenReturn(CopyObjectResponse.builder()
+    @Test
+    void replicateFile_performsCopy() {
+        CopyObjectResponse mockResponse = CopyObjectResponse.builder()
             .copyObjectResult(CopyObjectResult.builder().eTag("etag").build())
-            .build());
+            .build();
 
-    // Act
-    service.replicateFile("src-bucket", "srcKey", "dest-bucket", "destKey");
+        when(mockS3.copyObject(any(CopyObjectRequest.class))).thenReturn(mockResponse);
 
-    // Assert
-    verify(mockS3).copyObject(eq(expectedReq));
-}
+        service.replicateFile(null, "src-bucket", "srcKey", "dest-bucket", "destKey");
 
+        ArgumentCaptor<CopyObjectRequest> captor = ArgumentCaptor.forClass(CopyObjectRequest.class);
+        verify(mockS3).copyObject(captor.capture());
 
-
+        CopyObjectRequest actual = captor.getValue();
+        assertEquals("src-bucket", actual.sourceBucket());
+        assertEquals("srcKey", actual.sourceKey());
+        assertEquals("dest-bucket", actual.destinationBucket());
+        assertEquals("destKey", actual.destinationKey());
+    }
+    
     @Test
     void getFileSize_throwsRuntimeExceptionOnError() {
         when(mockS3.headObject(any(HeadObjectRequest.class)))
@@ -96,7 +90,7 @@ void replicateFile_performsCopy() {
             .thenThrow(S3Exception.builder().message("Access Denied").build());
 
         RuntimeException ex = assertThrows(RuntimeException.class, () ->
-            service.replicateFile("a", "b", "c", "d"));
+            service.replicateFile(null, "a", "b", "c", "d"));
         assertTrue(ex.getMessage().contains("Error replicating S3 object"));
         assertEquals(S3Exception.class, ex.getCause().getClass());
     }

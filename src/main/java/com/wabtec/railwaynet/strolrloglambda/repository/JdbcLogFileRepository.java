@@ -13,8 +13,9 @@ import org.postgresql.ds.PGSimpleDataSource;
 import org.slf4j.LoggerFactory;
 
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
+import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
 
-import software.amazon.lambda.powertools.logging.Logging;
+
 
 /**
  * JDBC repository that loads DB connection details from:
@@ -37,14 +38,14 @@ public class JdbcLogFileRepository implements LogFileRepository {
         String url = requireEnv("DB_URL");
         String user = requireEnv("DB_USER");
         // GET RID OF THIS AS SOON AS POSSIBLE
-        String password = "xxx";
+        //String password = "xxx";
         // get Lambda permission to read Secrets Manager
         // ADD THIS IMPORT later import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
-        //String password = requireEnv("DB_PASSWORD_SECRET_NAME");
-        //password = SecretManagerCache.getSecret(password);
-        //if (password == null) {
-        //    throw new IllegalStateException("Cannot retrieve DB password from Secrets Manager");
-        //}
+        String password = requireEnv("DB_PASSWORD_SECRET_NAME");
+        password = SecretManagerCache.getSecret(password);
+        if (password == null) {
+            throw new IllegalStateException("Cannot retrieve DB password from Secrets Manager");
+        }
         PGSimpleDataSource ds = new PGSimpleDataSource();
         ds.setUrl(url);
         ds.setUser(user);
@@ -57,7 +58,6 @@ public class JdbcLogFileRepository implements LogFileRepository {
         this.dataSource = requireNonNull(dataSource, "DataSource must not be null");
     }
 
-    @Logging(logEvent = false)
     @Override
     public void save(LogFile file) {
         try (Connection conn = dataSource.getConnection();

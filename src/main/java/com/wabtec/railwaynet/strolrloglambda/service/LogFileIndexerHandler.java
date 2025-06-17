@@ -8,16 +8,6 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.S3Event;
 import com.amazonaws.services.lambda.runtime.events.models.s3.S3EventNotification.S3EventNotificationRecord;
-
-import software.amazon.lambda.powertools.logging.Logging;
-import software.amazon.lambda.powertools.metrics.FlushMetrics;
-import software.amazon.lambda.powertools.metrics.Metrics;
-import software.amazon.lambda.powertools.metrics.MetricsFactory;
-import software.amazon.lambda.powertools.metrics.model.MetricUnit;
-import software.amazon.lambda.powertools.tracing.Tracing;
-
-
-
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 import com.wabtec.railwaynet.strolrloglambda.parser.LogFilePathParser;
 import com.wabtec.railwaynet.strolrloglambda.parser.PathParser;
@@ -54,7 +44,6 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
     /**
      * Cold-start constructor: reads env vars and initializes real dependencies.
      */
-    private static final Metrics metrics = MetricsFactory.getMetricsInstance();
 
     public LogFileIndexerHandler() {
     this.parser = new LogFilePathParser();
@@ -62,7 +51,19 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
 
     Region region = Region.of(System.getenv().getOrDefault("AWS_REGION", "us-east-1"));
     S3Client sdkS3 = S3Client.builder().region(region).build();
-    this.s3Service = new S3ServiceImpl(sdkS3);
+
+    // Choose ReplicationPathProcessor based on SCAC
+    ReplicationPathProcessor processor = switch (System.getenv("SCAC")) {
+        case "AMTK" -> new AmtkReplicationPathProcessor();
+        default -> null;
+    };
+
+    this.s3Service = new S3ServiceImpl(
+        sdkS3,
+        System.getenv("SCAC"),
+        processor
+    );
+
 
     String enable = System.getenv("ENABLE_REPLICATION");
     this.enableReplication = Boolean.parseBoolean(enable != null ? enable : "false");
@@ -73,9 +74,8 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
     if (enableReplication && (replicationBucket == null || replicationBucket.isBlank())) {
         throw new IllegalStateException("ENABLE_REPLICATION is true but REPLICATION_BUCKET_NAME is missing");
     }
-
-    
 }
+
 
 
     /**
@@ -96,16 +96,10 @@ public class LogFileIndexerHandler implements RequestHandler<S3Event, String> {
         this.replicationBucket = replicationBucket;
     }
 
-@Logging(logEvent = false)
-@Tracing
-@FlushMetrics(namespace = "RailwayNet", service = "logfile-indexer")
+
 @Override
 public String handleRequest(S3Event event, Context context) {
-    metrics.addDimension("environment", "prod");
-    String scac = System.getenv("SCAC");
-    if (scac != null && !scac.isBlank()) {
-        metrics.addDimension("scac", scac);
-    }
+
     S3EventNotificationRecord rec = event.getRecords().get(0);
     String bucket = rec.getS3().getBucket().getName();
     String key = rec.getS3().getObject().getKey();
@@ -127,14 +121,12 @@ public String handleRequest(S3Event event, Context context) {
     repo.save(lf);
     LOGGER.debug("Saved log file metadata to database: {}", lf);
 
-    metrics.addMetric("LogFileProcessed", 1, MetricUnit.COUNT);
     @SuppressWarnings("unused")
     long size = s3Service.getFileSize(bucket, decodedKey);
 
     if (enableReplication) {
-        s3Service.replicateFile(bucket, decodedKey, replicationBucket, extractFileName(decodedKey));
-        LOGGER.debug("Replicated file {} from bucket {} to bucket {}", decodedKey, bucket, replicationBucket);
-        metrics.addMetric("LogFileReplicated", 1, MetricUnit.COUNT);
+        s3Service.replicateFile(lf, bucket, decodedKey, replicationBucket, extractFileName(decodedKey));
+
     }
 
     LOGGER.debug("Completed processing log file: {}", lf);

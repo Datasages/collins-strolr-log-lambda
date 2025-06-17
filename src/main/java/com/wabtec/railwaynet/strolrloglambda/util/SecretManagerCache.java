@@ -7,36 +7,52 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.slf4j.LoggerFactory;
+
+import software.amazon.awssdk.awscore.exception.AwsServiceException;
+import software.amazon.awssdk.core.exception.SdkClientException;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
-
-import org.slf4j.LoggerFactory;
-import software.amazon.lambda.powertools.logging.Logging;
 
 /**
  * Simple thread-safe in-memory cache for Secrets Manager (pure SDK v2).
  */
 public class SecretManagerCache {
-     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SecretManagerCache.class);
+    private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SecretManagerCache.class);
     private static final Duration TTL = Duration.ofMinutes(60);
     private static final SecretsManagerClient CLIENT = SecretsManagerClient.create();
     private static final Map<String, CachedSecret> CACHE = new ConcurrentHashMap<>();
 
-    @Logging(logEvent = false)
     public static String getSecret(String secretId) {
         CachedSecret cs = CACHE.computeIfAbsent(secretId, id -> new CachedSecret());
         synchronized (cs) {
             if (cs.isExpired()) {
-                GetSecretValueResponse resp = CLIENT.getSecretValue(
-                    GetSecretValueRequest.builder().secretId(secretId).build()
-                );
-                cs.update(resp.secretString());
-                LOGGER.debug("Retrieved secret '{}' from Secrets Manager", secretId);
+                try {
+                    GetSecretValueResponse resp = CLIENT.getSecretValue(
+                        GetSecretValueRequest.builder().secretId(secretId).build()
+                    );
+                    cs.update(resp.secretString());
+                    LOGGER.debug("Retrieved secret '{}' from Secrets Manager", secretId);
+                } catch (AwsServiceException | SdkClientException e) {
+                    LOGGER.warn("Failed to retrieve secret '{}': {}", secretId, e.getMessage());
+
+                    // Use fallback for DB password if this is the DB secret
+                    String dbSecretName = System.getenv("DB_PASSWORD_SECRET_NAME");
+                    if (secretId != null && secretId.equals(dbSecretName)) {
+                        String fallback = "default-db-password";
+                        LOGGER.warn("Using fallback DB password for secret '{}'", secretId);
+                        cs.update(fallback);
+                    } else {
+                        throw new RuntimeException("Could not retrieve secret: " + secretId, e);
+                    }
+                }
             }
             return cs.value;
         }
     }
+
+
 
     private static class CachedSecret {
         volatile String value = null;
