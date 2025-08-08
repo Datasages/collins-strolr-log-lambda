@@ -6,7 +6,7 @@
 
     <groupId>com.wabtec.railwaynet</groupId>
     <artifactId>strolrloglambda</artifactId>
-    <version>2.0.1</version>
+    <version>2.0.2</version>
 
     <properties>
         <maven.compiler.release>17</maven.compiler.release>

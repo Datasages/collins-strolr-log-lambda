@@ -38,6 +38,8 @@ public class LogFilePathParser implements PathParser {
 
         boolean isMdm = decoded.contains("mdm");
         boolean isHistory = filename.startsWith("app.") ||
+        					filename.startsWith("chr.") ||
+        					filename.startsWith("tdat.") ||
                             filename.contains("fault_history") ||
                             filename.contains("event_history") ||
                             filename.contains("failure_history") ||

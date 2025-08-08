@@ -1,7 +1,7 @@
 SCAC=AMTK
-JAR=target/strolrloglambda-2.0.1.jar
+JAR=target/strolrloglambda-2.0.2.jar
 BUCKET=lambda-artifacts
-KEY=strolrloglambda-2.0.1.jar
+KEY=strolrloglambda-2.0.2.jar
 FUNC_NAME=LogFileIndexerHandler
 ROLE_ARN=arn:aws:iam::000000000000:role/lambda-ex
 SECRET_NAME=DB_PASSWORD_SECRET_NAME
@@ -33,7 +33,10 @@ upload-test-log:
 	awslocal s3api create-bucket --bucket test-bucket || true
 	awslocal s3 cp test-data/sample.log.gz \
 		s3://test-bucket/amtk.l.amtk.10:mdm/2025/JUN/05/01:24-CPU-3/disk/var/log/app.AMTK.10.20250605042130.log.gz
-
+	awslocal s3 cp test-data/sample.log.gz \
+		s3://test-bucket/amtk.l.amtk.10:mdm/2025/JUN/05/01:24-CPU-3/disk/var/log/chr.AMTK.10.20250605042130.log.gz
+	awslocal s3 cp test-data/sample.log.gz \
+		s3://test-bucket/amtk.l.amtk.10:mdm/2025/JUN/05/01:24-CPU-3/disk/var/log/tdat.AMTK.10.20250605042130.log.gz
 
 
 # Upload to LocalStack S3
