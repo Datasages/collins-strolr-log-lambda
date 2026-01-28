@@ -55,6 +55,8 @@ maven-package:
   stage: package
   dependencies:
     - maven-build
+  before_script:
+    - yum install -y zip
   script:
     - mvn package ${MAVEN_CLI_OPTS} -DskipTests
     - VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
