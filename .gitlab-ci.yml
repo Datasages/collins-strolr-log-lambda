@@ -40,11 +40,13 @@ unit-tests:
   script:
     - mvn test ${MAVEN_CLI_OPTS}
   artifacts:
+    when: always
     paths:
       - target/surefire-reports/
       - target/jacoco.exec
     reports:
-      junit: target/surefire-reports/*.xml
+      junit:
+        - target/surefire-reports/TEST-*.xml
     expire_in: 1 week
 
 # Package the Lambda JAR (fat JAR with shade plugin)
