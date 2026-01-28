@@ -72,12 +72,32 @@ maven-package:
       dotenv: package.env
     expire_in: 1 week
 
+# Upload to Generic Package Registry
+upload-package:
+  stage: release
+  image: curlimages/curl:latest
+  dependencies:
+    - maven-package
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+           --upload-file artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${ARTIFACT_NAME}/${ARTIFACT_VERSION}/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+           --upload-file artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip \
+           "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${ARTIFACT_NAME}/${ARTIFACT_VERSION}/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
+  rules:
+    - if: $CI_COMMIT_TAG
+
 # Create GitLab release for tags
 create-release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   dependencies:
     - maven-package
+  needs:
+    - job: upload-package
   script:
     - echo "Creating release for $CI_COMMIT_TAG"
   release:
@@ -87,8 +107,10 @@ create-release:
     assets:
       links:
         - name: "${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
-          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${ARTIFACT_NAME}/${ARTIFACT_VERSION}/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
+          link_type: package
         - name: "${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
-          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
+          url: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${ARTIFACT_NAME}/${ARTIFACT_VERSION}/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
+          link_type: package
   rules:
     - if: $CI_COMMIT_TAG
