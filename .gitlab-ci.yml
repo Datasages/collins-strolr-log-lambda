@@ -1,20 +1,89 @@
-stages:
-  - test
+image: maven:3.9-amazoncorretto-17
 
 variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
-  DOCKER_HOST: tcp://docker:2375/
+  MAVEN_CLI_OPTS: '-B --no-transfer-progress'
+  ARTIFACT_NAME: strolrloglambda
 
-test:
+stages:
+  - build
+  - test
+  - package
+  - release
+
+cache:
+  key: "${CI_COMMIT_REF_SLUG}"
+  paths:
+    - .m2/repository/
+
+# Build and compile the application
+maven-build:
+  stage: build
+  script:
+    - mvn clean compile ${MAVEN_CLI_OPTS}
+  artifacts:
+    paths:
+      - target/
+    expire_in: 1 hour
+
+# Run unit tests
+unit-tests:
   stage: test
-  image: maven:3.9.6-eclipse-temurin-17
+  dependencies:
+    - maven-build
   services:
     - docker:dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_TLS_CERTDIR: ""
   before_script:
-    - apt-get update && apt-get install -y docker.io
+    - yum install -y docker
   script:
-    - mvn clean verify --batch-mode --fail-at-end
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
+    - mvn test ${MAVEN_CLI_OPTS}
+  artifacts:
     paths:
-      - .m2/repository
+      - target/surefire-reports/
+      - target/jacoco.exec
+    reports:
+      junit: target/surefire-reports/*.xml
+    expire_in: 1 week
+
+# Package the Lambda JAR (fat JAR with shade plugin)
+maven-package:
+  stage: package
+  dependencies:
+    - maven-build
+  script:
+    - mvn package ${MAVEN_CLI_OPTS} -DskipTests
+    - VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+    - echo "ARTIFACT_VERSION=${VERSION}" >> package.env
+    - mkdir -p artifacts
+    - cp target/${ARTIFACT_NAME}-${VERSION}.jar artifacts/
+    - cd artifacts && zip ${ARTIFACT_NAME}-${VERSION}.jar.zip ${ARTIFACT_NAME}-${VERSION}.jar
+  artifacts:
+    paths:
+      - artifacts/*.jar
+      - artifacts/*.zip
+    reports:
+      dotenv: package.env
+    expire_in: 1 week
+
+# Create GitLab release for tags
+create-release:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  dependencies:
+    - maven-package
+  script:
+    - echo "Creating release for $CI_COMMIT_TAG"
+  release:
+    tag_name: $CI_COMMIT_TAG
+    name: "Release $CI_COMMIT_TAG"
+    description: "Release $CI_COMMIT_TAG of STROLR Log Lambda"
+    assets:
+      links:
+        - name: "${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar"
+        - name: "${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
+          url: "${CI_PROJECT_URL}/-/jobs/${CI_JOB_ID}/artifacts/file/artifacts/${ARTIFACT_NAME}-${ARTIFACT_VERSION}.jar.zip"
+  rules:
+    - if: $CI_COMMIT_TAG
