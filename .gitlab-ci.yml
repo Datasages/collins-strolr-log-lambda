@@ -94,9 +94,9 @@ upload-package:
 create-release:
   stage: release
   image: registry.gitlab.com/gitlab-org/release-cli:latest
-  dependencies:
-    - maven-package
   needs:
+    - job: maven-package
+      artifacts: true
     - job: upload-package
   script:
     - echo "Creating release for $CI_COMMIT_TAG"
