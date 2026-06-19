@@ -41,9 +41,13 @@ public class SecretManagerCache {
         client = testClient;
     }
 
-    /** Test seam: drop all cached secrets so each test starts from a cold cache. */
-    static void resetForTesting() {
+    /**
+     * Test seam: drop all cached secrets AND any injected client so each test starts
+     * cold and no stub leaks into a later test sharing this JVM's static state.
+     */
+    static synchronized void resetForTesting() {
         CACHE.clear();
+        client = null;
     }
 
     public static String getSecret(String secretId) {
