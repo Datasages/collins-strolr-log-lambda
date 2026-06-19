@@ -387,10 +387,10 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
-                    <!-- Coverage regression gate. Floors sit below current coverage
-                         (~80% line / ~69% branch as of this change) so the build fails
-                         only on a real regression, not on noise. Raise deliberately as
-                         coverage improves. Runs at verify (GitHub `mvn clean verify`). -->
+                    <!-- Coverage regression gate. Floors sit deliberately below current
+                         coverage so the build fails only on a real regression, not on
+                         noise. Raise deliberately as coverage improves. Runs at verify
+                         (GitHub `mvn clean verify`). -->
                     <execution>
                         <id>coverage-check</id>
                         <phase>verify</phase>

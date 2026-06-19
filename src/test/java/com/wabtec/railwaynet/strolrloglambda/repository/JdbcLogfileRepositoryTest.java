@@ -118,4 +118,20 @@ static void setupDatabase() throws SQLException {
             () -> new JdbcLogFileRepository(resolver));
         assertTrue(ex.getMessage().contains("my-db-secret"));
     }
+
+    @Test
+    void constructor_throwsWhenResolverReturnsNullPassword() {
+        envVars.set("DB_URL", "jdbc:postgresql://localhost:5432/db");
+        envVars.set("DB_USER", "writer");
+        envVars.set("DB_PASSWORD_SECRET_NAME", "my-db-secret");
+
+        // A resolver that returns null (rather than throwing) must still fail closed:
+        // the constructor must not build a DataSource with a null password.
+        SecretResolver resolver = mock(SecretResolver.class);
+        when(resolver.resolve("my-db-secret")).thenReturn(null);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> new JdbcLogFileRepository(resolver));
+        assertTrue(ex.getMessage().contains("Cannot retrieve DB password"));
+    }
 }

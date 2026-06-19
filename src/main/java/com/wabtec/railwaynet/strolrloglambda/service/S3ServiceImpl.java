@@ -2,7 +2,6 @@
 // @author Pete Kofod
 package com.wabtec.railwaynet.strolrloglambda.service;
 
-import java.util.Map;
 import java.util.Objects;
 
 import org.slf4j.LoggerFactory;
@@ -22,17 +21,15 @@ public class S3ServiceImpl implements S3Service {
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(S3ServiceImpl.class);
 
     private final S3Client s3;
-    private final Map<String, ReplicationPathProcessor> processorMap;
     private final String scac;
+    /** Resolved at construction: the processor for this SCAC, or null if none applies. */
+    private final ReplicationPathProcessor processor;
 
     public S3ServiceImpl(S3Client s3Client, String scac, ReplicationPathProcessor processor) {
         this.s3 = Objects.requireNonNull(s3Client, "s3Client");
         this.scac = scac;
-        if (scac != null && processor != null) {
-            this.processorMap = Map.of(scac, processor);
-        } else {
-            this.processorMap = Map.of();
-        }
+        // A processor only applies when we have both a SCAC and a processor for it.
+        this.processor = (scac != null) ? processor : null;
     }
 
     @Override
@@ -51,12 +48,9 @@ public class S3ServiceImpl implements S3Service {
 
     @Override
     public void replicateFile(LogFile lf, String srcBucket, String srcKey, String destBucket, String destKey) {
-        // Use the injected SCAC, not System.getenv — config belongs at the composition
-        // root (the constructor already captured it), not re-read inside business logic.
-        ReplicationPathProcessor processor = (scac != null) ? processorMap.get(scac) : null;
-
+        // The processor (if any) was resolved at construction — no System.getenv here.
         if (processor != null) {
-            destKey = processor.getReplicationPath(lf)  + destKey;
+            destKey = processor.getReplicationPath(lf) + destKey;
         } else {
             LOGGER.warn("No replication path processor found for SCAC: {}", scac);
         }
