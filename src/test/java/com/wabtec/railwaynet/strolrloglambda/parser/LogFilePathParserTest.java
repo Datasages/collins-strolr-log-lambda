@@ -3,6 +3,7 @@
 package com.wabtec.railwaynet.strolrloglambda.parser;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -82,5 +83,63 @@ class LogFilePathParserTest {
                                    () -> parser.parse(key, "bucket"));
         assertTrue(ex.getMessage().contains("No valid timestamp"));
     }
-    
+
+    @Test
+    void parse_nonMdm_extractsDeviceCpu2() {
+        String key = "bucket/CPU-2/MK.5.20240101010101.log.gz";
+
+        LogFile lf = parser.parse(key, "bucket");
+
+        assertNotNull(lf);
+        assertEquals("MK", lf.getMark());
+        assertEquals(5, lf.getLocoNumber());
+        assertEquals("CPU-2", lf.getDevice());
+        assertEquals(LocalDateTime.of(2024, 1, 1, 1, 1, 1), lf.getEndTime());
+    }
+
+    @Test
+    void parse_nonMdm_extractsDeviceCdu1() {
+        String key = "bucket/CDU-1/MK.7.20240202020202.log.gz";
+
+        LogFile lf = parser.parse(key, "bucket");
+
+        assertNotNull(lf);
+        assertEquals("CDU-1", lf.getDevice());
+        assertEquals(7, lf.getLocoNumber());
+    }
+
+    @Test
+    void parse_nonMdmHistory_takesMarkAndLocoFromFilenameSegments() {
+        // !isMdm && isHistory branch: mark = segment[1], loco = segment[2], timestamp scanned.
+        String key = "bucket/logs/event_history.NJTR.55.20230303030303.log.gz";
+
+        LogFile lf = parser.parse(key, "bucket");
+
+        assertNotNull(lf);
+        assertEquals("NJTR", lf.getMark());
+        assertEquals(55, lf.getLocoNumber());
+        assertEquals(LocalDateTime.of(2023, 3, 3, 3, 3, 3), lf.getEndTime());
+        assertTrue(lf.getDevice().isEmpty());
+    }
+
+    @Test
+    void parse_mdmHistory_noMatchingFolder_fallsBackToEmptyMarkZeroLoco() {
+        // isMdm && isHistory, but no folder matches the amtk.l.<mark>.<loco>:mdm pattern.
+        String key = "bucket/somemdmfolder/LOCO.20250505050505.log.gz";
+
+        LogFile lf = parser.parse(key, "bucket");
+
+        assertNotNull(lf);
+        assertTrue(lf.getMark().isEmpty());
+        assertEquals(0, lf.getLocoNumber());
+        assertEquals(LocalDateTime.of(2025, 5, 5, 5, 5, 5), lf.getEndTime());
+    }
+
+    @Test
+    void parse_mdmNonHistory_nonNumericLoco_throws() {
+        // isMdm && !isHistory: a non-numeric loco segment is wrapped as DateTimeParseException.
+        String key = "bucket/xmdmx/MK.NOTNUM.20250101000000.log.gz";
+
+        assertThrows(DateTimeParseException.class, () -> parser.parse(key, "bucket"));
+    }
 }

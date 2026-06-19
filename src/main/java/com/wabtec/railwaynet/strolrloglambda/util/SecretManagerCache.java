@@ -5,6 +5,7 @@ package com.wabtec.railwaynet.strolrloglambda.util;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.LoggerFactory;
@@ -16,42 +17,43 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueReques
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
 /**
- * Simple thread-safe in-memory cache for Secrets Manager (pure SDK v2).
+ * Thread-safe, TTL-bounded in-memory cache over AWS Secrets Manager (SDK v2),
+ * implementing {@link SecretResolver}.
+ *
+ * <p>The {@link SecretsManagerClient} is injectable via constructor so the resolve path
+ * can be unit-tested with a stub. The no-arg constructor lazily creates a real client on
+ * first use, so AWS region/credential resolution doesn't run at construction (keeping the
+ * no-arg path cheap and safe in a test JVM with no AWS region). One instance is created at
+ * Lambda cold-start and reused across warm invocations, so the instance cache persists for
+ * the container's lifetime — same caching behavior as before, without static state.
  */
-public class SecretManagerCache {
+public class SecretManagerCache implements SecretResolver {
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SecretManagerCache.class);
     private static final Duration TTL = Duration.ofMinutes(60);
-    private static final Map<String, CachedSecret> CACHE = new ConcurrentHashMap<>();
 
-    // Lazily constructed so the AWS region/credential resolution in
-    // SecretsManagerClient.create() doesn't run at class-load (which would fail in
-    // a test JVM with no AWS region). Package-private + injectable as a test seam —
-    // see setClientForTesting / resetForTesting. Not part of the public API.
-    private static SecretsManagerClient client;
+    private final Map<String, CachedSecret> cache = new ConcurrentHashMap<>();
+    private SecretsManagerClient client;
 
-    private static synchronized SecretsManagerClient client() {
+    /** Production: the real client is created lazily on first {@link #resolve}. */
+    public SecretManagerCache() {
+        this.client = null;
+    }
+
+    /** Inject a client (tests, or alternate wiring). */
+    public SecretManagerCache(SecretsManagerClient client) {
+        this.client = Objects.requireNonNull(client, "client");
+    }
+
+    private synchronized SecretsManagerClient client() {
         if (client == null) {
             client = SecretsManagerClient.create();
         }
         return client;
     }
 
-    /** Test seam: inject a stub SecretsManagerClient. Package-private by design. */
-    static synchronized void setClientForTesting(SecretsManagerClient testClient) {
-        client = testClient;
-    }
-
-    /**
-     * Test seam: drop all cached secrets AND any injected client so each test starts
-     * cold and no stub leaks into a later test sharing this JVM's static state.
-     */
-    static synchronized void resetForTesting() {
-        CACHE.clear();
-        client = null;
-    }
-
-    public static String getSecret(String secretId) {
-        CachedSecret cs = CACHE.computeIfAbsent(secretId, id -> new CachedSecret());
+    @Override
+    public String resolve(String secretId) {
+        CachedSecret cs = cache.computeIfAbsent(secretId, id -> new CachedSecret());
         synchronized (cs) {
             if (cs.isExpired()) {
                 try {
@@ -61,11 +63,8 @@ public class SecretManagerCache {
                     cs.update(resp.secretString());
                     LOGGER.debug("Retrieved secret '{}' from Secrets Manager", secretId);
                 } catch (AwsServiceException | SdkClientException e) {
-                    // SECURITY: fail closed. The previous implementation fell back to a
-                    // hardcoded "default-db-password" when Secrets Manager was unreachable,
-                    // which (a) shipped a known credential inside the production fat JAR and
-                    // (b) masked outages by attempting DB connections with a bogus password.
-                    // A secret that cannot be retrieved is a fatal error — surface it.
+                    // SECURITY: fail closed. A secret that cannot be retrieved is a fatal
+                    // error — never fall back to a default/hardcoded credential.
                     LOGGER.error("Failed to retrieve secret '{}' from Secrets Manager", secretId, e);
                     throw new IllegalStateException("Could not retrieve secret: " + secretId, e);
                 }
@@ -73,8 +72,6 @@ public class SecretManagerCache {
             return cs.value;
         }
     }
-
-
 
     private static class CachedSecret {
         volatile String value = null;

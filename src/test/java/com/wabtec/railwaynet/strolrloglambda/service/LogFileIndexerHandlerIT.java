@@ -156,10 +156,14 @@ class LogFileIndexerHandlerIT {
             assertFalse(rs.next(), "Expected only one row in the table");
         }
 
-        // ✅ S3 replication check
+        // ✅ S3 replication check — the AMTK processor sorts the object under a dated path.
+        // (Before SCAC was injected rather than read from System.getenv, this test ran with
+        // no SCAC env set and so asserted the bare filename — a path the production Lambda,
+        // which always has SCAC set, never produced. The injected-SCAC path is the real one.)
         var resp = s3Client.listObjectsV2(b -> b.bucket("dest-bucket"));
         assertFalse(resp.contents().isEmpty());
-        assertEquals("app.AMTK.10.20250605042130.log.gz", resp.contents().get(0).key());
+        assertEquals("Sorted_Logs_for_05_JUN_2025/AMTK.10.05_JUN_2025/CPU-3/app.AMTK.10.20250605042130.log.gz",
+            resp.contents().get(0).key());
     }
 
     @Test

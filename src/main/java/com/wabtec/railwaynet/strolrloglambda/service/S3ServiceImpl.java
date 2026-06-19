@@ -51,9 +51,9 @@ public class S3ServiceImpl implements S3Service {
 
     @Override
     public void replicateFile(LogFile lf, String srcBucket, String srcKey, String destBucket, String destKey) {
-        String scacEnv = System.getenv("SCAC");
-
-        ReplicationPathProcessor processor = (scacEnv != null) ? processorMap.get(scacEnv) : null;
+        // Use the injected SCAC, not System.getenv — config belongs at the composition
+        // root (the constructor already captured it), not re-read inside business logic.
+        ReplicationPathProcessor processor = (scac != null) ? processorMap.get(scac) : null;
 
         if (processor != null) {
             destKey = processor.getReplicationPath(lf)  + destKey;

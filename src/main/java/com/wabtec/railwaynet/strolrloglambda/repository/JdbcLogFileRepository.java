@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
 import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
+import com.wabtec.railwaynet.strolrloglambda.util.SecretResolver;
 
 
 /**
@@ -32,16 +33,22 @@ public class JdbcLogFileRepository implements LogFileRepository {
 
     private final DataSource dataSource;
 
-    /** Production constructor: reads DB URL/user from env, and password from AWS Secrets Manager */
+    /** Production constructor: resolves the DB password via the default Secrets Manager resolver. */
     public JdbcLogFileRepository() {
+        this(new SecretManagerCache());
+    }
+
+    /**
+     * Builds a PostgreSQL DataSource from env (DB_URL, DB_USER) plus the password resolved
+     * via the injected {@link SecretResolver} (whose name comes from DB_PASSWORD_SECRET_NAME).
+     * Injecting the resolver makes the secret path unit-testable with a stub.
+     */
+    public JdbcLogFileRepository(SecretResolver secretResolver) {
+        requireNonNull(secretResolver, "secretResolver must not be null");
         String url = requireEnv("DB_URL");
         String user = requireEnv("DB_USER");
-        // GET RID OF THIS AS SOON AS POSSIBLE
-        //String password = "xxx";
-        // get Lambda permission to read Secrets Manager
-        // ADD THIS IMPORT later import com.wabtec.railwaynet.strolrloglambda.util.SecretManagerCache;
-        String password = requireEnv("DB_PASSWORD_SECRET_NAME");
-        password = SecretManagerCache.getSecret(password);
+        String secretName = requireEnv("DB_PASSWORD_SECRET_NAME");
+        String password = secretResolver.resolve(secretName);
         if (password == null) {
             throw new IllegalStateException("Cannot retrieve DB password from Secrets Manager");
         }
