@@ -19,10 +19,11 @@ SECRET_CACHE_FILE := src/main/java/com/wabtec/railwaynet/strolrloglambda/util/Se
 all: build initdb upload-test-log upload secrets deploy wait-for-lambda invoke
 
 # Build the fat jar
+# (The previous sed dance that scrubbed a hardcoded "default-db-password"
+#  fallback out of the jar at build time is gone — the fallback itself was
+#  removed from SecretManagerCache.java; the code now fails closed.)
 build:
-	sed -i '' 's/"default-db-password"/"XXXX"/g' $(SECRET_CACHE_FILE)
 	mvn clean package
-	sed -i '' 's/"XXXX"/"default-db-password"/g' $(SECRET_CACHE_FILE)
 
 initdb:
 	docker exec -i $(POSTGRES_CONTAINER) psql -U $(POSTGRES_USER) -d $(POSTGRES_DB) < scripts/schema.sql

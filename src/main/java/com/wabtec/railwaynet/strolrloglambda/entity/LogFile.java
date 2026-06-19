@@ -4,40 +4,29 @@ package com.wabtec.railwaynet.strolrloglambda.entity;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
 /**
- * @author petekofod
+ * Plain data holder for an indexed log-file row.
  *
+ * NOTE: persistence is done with plain JDBC in {@code JdbcLogFileRepository}; there is
+ * no JPA provider on the classpath. The former {@code jakarta.persistence}
+ * {@code @Entity/@Table/@Column} annotations were therefore decorative and have been
+ * removed along with the unused dependency. The column mapping now lives solely in the
+ * repository's INSERT and {@code scripts/schema.sql}.
+ *
+ * @author petekofod
  */
-@Entity
-@Table(name="logFileIndex")
 public class LogFile {
 
-
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	@Column(name="id")
 	private int id;
-	
-	@Column(name="mark")
+
 	private String mark;
-	
-	@Column(name="locoNumber")
+
 	private int locoNumber;
-	
-	@Column(name="device")
+
 	private String device;
-	
-	@Column(name="endTime")
+
 	private LocalDateTime endTime;
-	
-	@Column(name="logFilePath")
+
 	private String logFilePath;
 		
 	public int getId() {

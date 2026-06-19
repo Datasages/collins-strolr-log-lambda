@@ -15,8 +15,9 @@
   <logger name="software.amazon.awssdk.request" level="INFO" />
   <logger name="software.amazon.awssdk.core.internal" level="WARN" />
 
-  <!-- Your application logs -->
-  <root level="DEBUG">
+  <!-- Your application logs. Default INFO in production (DEBUG logged every S3 key,
+       parsed metadata and bucket name to CloudWatch). Override via LOG_LEVEL env var. -->
+  <root level="${LOG_LEVEL:-INFO}">
     <appender-ref ref="CONSOLE" />
   </root>
 

@@ -21,31 +21,53 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 public class SecretManagerCache {
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SecretManagerCache.class);
     private static final Duration TTL = Duration.ofMinutes(60);
-    private static final SecretsManagerClient CLIENT = SecretsManagerClient.create();
     private static final Map<String, CachedSecret> CACHE = new ConcurrentHashMap<>();
+
+    // Lazily constructed so the AWS region/credential resolution in
+    // SecretsManagerClient.create() doesn't run at class-load (which would fail in
+    // a test JVM with no AWS region). Package-private + injectable as a test seam —
+    // see setClientForTesting / resetForTesting. Not part of the public API.
+    private static SecretsManagerClient client;
+
+    private static synchronized SecretsManagerClient client() {
+        if (client == null) {
+            client = SecretsManagerClient.create();
+        }
+        return client;
+    }
+
+    /** Test seam: inject a stub SecretsManagerClient. Package-private by design. */
+    static synchronized void setClientForTesting(SecretsManagerClient testClient) {
+        client = testClient;
+    }
+
+    /**
+     * Test seam: drop all cached secrets AND any injected client so each test starts
+     * cold and no stub leaks into a later test sharing this JVM's static state.
+     */
+    static synchronized void resetForTesting() {
+        CACHE.clear();
+        client = null;
+    }
 
     public static String getSecret(String secretId) {
         CachedSecret cs = CACHE.computeIfAbsent(secretId, id -> new CachedSecret());
         synchronized (cs) {
             if (cs.isExpired()) {
                 try {
-                    GetSecretValueResponse resp = CLIENT.getSecretValue(
+                    GetSecretValueResponse resp = client().getSecretValue(
                         GetSecretValueRequest.builder().secretId(secretId).build()
                     );
                     cs.update(resp.secretString());
                     LOGGER.debug("Retrieved secret '{}' from Secrets Manager", secretId);
                 } catch (AwsServiceException | SdkClientException e) {
-                    LOGGER.warn("Failed to retrieve secret '{}': {}", secretId, e.getMessage());
-
-                    // Use fallback for DB password if this is the DB secret
-                    String dbSecretName = System.getenv("DB_PASSWORD_SECRET_NAME");
-                    if (secretId != null && secretId.equals(dbSecretName)) {
-                        String fallback = "default-db-password";
-                        LOGGER.warn("Using fallback DB password for secret '{}'", secretId);
-                        cs.update(fallback);
-                    } else {
-                        throw new RuntimeException("Could not retrieve secret: " + secretId, e);
-                    }
+                    // SECURITY: fail closed. The previous implementation fell back to a
+                    // hardcoded "default-db-password" when Secrets Manager was unreachable,
+                    // which (a) shipped a known credential inside the production fat JAR and
+                    // (b) masked outages by attempting DB connections with a bogus password.
+                    // A secret that cannot be retrieved is a fatal error — surface it.
+                    LOGGER.error("Failed to retrieve secret '{}' from Secrets Manager", secretId, e);
+                    throw new IllegalStateException("Could not retrieve secret: " + secretId, e);
                 }
             }
             return cs.value;

@@ -27,14 +27,14 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.31.63</version> <!-- Update to latest stable if needed -->
+                <version>2.46.14</version> <!-- AWS SDK v2 BOM — bumped from 2.31.63 (currency / transitive CVE hygiene) -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.13.1</version>
+                <version>5.14.1</version> <!-- bumped from 5.13.1 — CVE-2025-53103 (junit-platform-reporting credential leak) -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -42,14 +42,14 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.9</version>
+                <version>2.0.17</version>
             </dependency>
 
             <!-- Align commons-codec -->
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.17.1</version>
+                <version>1.22.0</version>
             </dependency>
 
             <!-- Align httpcore -->
@@ -62,22 +62,22 @@
             <dependency>
                 <groupId>com.amazonaws</groupId>
                 <artifactId>aws-lambda-java-serialization</artifactId>
-                <version>1.1.5</version>
+                <version>1.4.1</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
-                <version>2.19.0</version>
+                <version>2.22</version> <!-- jackson-annotations drops the patch digit at 2.20+ (it is "2.22", not "2.22.0") -->
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.19.0</version>
+                <version>2.22.0</version> <!-- bumped from 2.19.0 — GHSA-72hv-8253-57qq (async parser maxNumberLength bypass DoS) -->
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.19.0</version>
+                <version>2.22.0</version>
             </dependency>
             <dependency>
                 <groupId>net.bytebuddy</groupId>
@@ -109,13 +109,13 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-core</artifactId>
-            <version>1.3.0</version>
+            <version>1.4.0</version>
         </dependency>
 
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-events</artifactId>
-            <version>3.11.0</version>
+            <version>3.16.1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-lambda-java-events -->
 
@@ -129,36 +129,29 @@
         <dependency>
             <groupId>com.amazonaws.secretsmanager</groupId>
             <artifactId>aws-secretsmanager-caching-java</artifactId>
-            <version>2.0.0</version>
+            <version>2.2.0</version> <!-- bumped from 2.0.0 — pulls patched transitive AWS SDK -->
         </dependency>
 
         <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.3</version>
+            <version>42.7.11</version> <!-- bumped from 42.7.3 — CVE-2026-42198 (SCRAM-SHA-256 PBKDF2 client DoS) -->
         </dependency>
 
         <!-- JSON utils -->
         <dependency>
             <groupId>org.json</groupId>
             <artifactId>json</artifactId>
-            <version>20230227</version>
+            <version>20250517</version> <!-- bumped from 20230227 — CVE-2023-5072 (nested-object parser DoS) -->
         </dependency>
 
-
-        <!-- https://mvnrepository.com/artifact/jakarta.persistence/jakarta.persistence-api -->
-        <dependency>
-            <groupId>jakarta.persistence</groupId>
-            <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.2.0</version>
-        </dependency>
 
         <!-- AspectJ runtime -->
         <dependency>
             <groupId>org.aspectj</groupId>
             <artifactId>aspectjrt</artifactId>
-            <version>1.9.22</version>
+            <version>1.9.25.1</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
         <dependency>
@@ -181,7 +174,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.12</version>
+            <version>1.5.18</version> <!-- bumped from 1.4.12 (EOL) — CVE-2024-12798 (JaninoEventEvaluator ACE) + CVE-2024-12801 (SaxEventRecorder SSRF) in logback-core -->
         </dependency>
 
         <!-- SLF4J API -->
@@ -193,14 +186,10 @@
 
 
 
-        <!-- Log4j2 API -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>2.24.3</version>
-        </dependency>
+        <!-- (Removed unused log4j-api: logging is slf4j + logback; no log4j binding was
+             ever on the classpath, so it shipped as dead weight / attack surface.) -->
 
-    
+
         <!-- Test containers & testing libs -->
         <!-- (keep your existing test dependencies here) -->
         <!-- JUnit 5 API for test annotations -->
@@ -250,31 +239,31 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.2.220</version>
+            <version>2.4.240</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.21.1</version>
+            <version>1.21.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <version>1.21.1</version>
+            <version>1.21.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
-            <version>1.21.1</version>
+            <version>1.21.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>localstack</artifactId>
-            <version>1.21.1</version>
+            <version>1.21.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -325,7 +314,7 @@
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.13.1</version>
+                        <version>5.14.1</version>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>
