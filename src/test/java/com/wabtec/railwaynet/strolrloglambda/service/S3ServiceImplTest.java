@@ -14,6 +14,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+
+import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
+
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CopyObjectResponse;
@@ -93,5 +97,28 @@ class S3ServiceImplTest {
             service.replicateFile(null, "a", "b", "c", "d"));
         assertTrue(ex.getMessage().contains("Error replicating S3 object"));
         assertEquals(S3Exception.class, ex.getCause().getClass());
+    }
+
+    @Test
+    void replicateFile_prefixesDestKeyWithProcessorPath() {
+        // With a SCAC + processor injected, the destination key is prefixed by the
+        // processor's replication path. Previously only the integration test covered this;
+        // now it's a deterministic unit test (no System.getenv dependency).
+        S3ServiceImpl withProcessor =
+            new S3ServiceImpl(mockS3, "AMTK", new AmtkReplicationPathProcessor());
+        LogFile lf = new LogFile("AMTK", 10, "CPU-3",
+            LocalDateTime.of(2025, 6, 5, 4, 21, 30), "url");
+
+        when(mockS3.copyObject(any(CopyObjectRequest.class)))
+            .thenReturn(CopyObjectResponse.builder()
+                .copyObjectResult(CopyObjectResult.builder().eTag("etag").build())
+                .build());
+
+        withProcessor.replicateFile(lf, "src-bucket", "srcKey", "dest-bucket", "file.log.gz");
+
+        ArgumentCaptor<CopyObjectRequest> captor = ArgumentCaptor.forClass(CopyObjectRequest.class);
+        verify(mockS3).copyObject(captor.capture());
+        assertEquals("Sorted_Logs_for_05_JUN_2025/AMTK.10.05_JUN_2025/CPU-3/file.log.gz",
+            captor.getValue().destinationKey());
     }
 }

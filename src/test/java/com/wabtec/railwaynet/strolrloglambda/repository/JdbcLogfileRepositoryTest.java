@@ -16,8 +16,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.wabtec.railwaynet.strolrloglambda.entity.LogFile;
+import com.wabtec.railwaynet.strolrloglambda.util.SecretResolver;
 
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStub;
@@ -82,5 +87,51 @@ static void setupDatabase() throws SQLException {
 
         IllegalStateException ex = assertThrows(IllegalStateException.class, JdbcLogFileRepository::new);
     assertTrue(ex.getMessage().contains("DB_URL"));
+    }
+
+    @Test
+    void constructor_resolvesPasswordViaInjectedResolver() {
+        envVars.set("DB_URL", "jdbc:postgresql://localhost:5432/db");
+        envVars.set("DB_USER", "writer");
+        envVars.set("DB_PASSWORD_SECRET_NAME", "my-db-secret");
+
+        SecretResolver resolver = mock(SecretResolver.class);
+        when(resolver.resolve("my-db-secret")).thenReturn("resolved-pw");
+
+        // Builds a PGSimpleDataSource (no connection attempt) — succeeds without a real DB.
+        new JdbcLogFileRepository(resolver);
+
+        verify(resolver).resolve(eq("my-db-secret"));
+    }
+
+    @Test
+    void constructor_propagatesWhenResolverFailsClosed() {
+        envVars.set("DB_URL", "jdbc:postgresql://localhost:5432/db");
+        envVars.set("DB_USER", "writer");
+        envVars.set("DB_PASSWORD_SECRET_NAME", "my-db-secret");
+
+        SecretResolver resolver = mock(SecretResolver.class);
+        when(resolver.resolve("my-db-secret"))
+            .thenThrow(new IllegalStateException("Could not retrieve secret: my-db-secret"));
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> new JdbcLogFileRepository(resolver));
+        assertTrue(ex.getMessage().contains("my-db-secret"));
+    }
+
+    @Test
+    void constructor_throwsWhenResolverReturnsNullPassword() {
+        envVars.set("DB_URL", "jdbc:postgresql://localhost:5432/db");
+        envVars.set("DB_USER", "writer");
+        envVars.set("DB_PASSWORD_SECRET_NAME", "my-db-secret");
+
+        // A resolver that returns null (rather than throwing) must still fail closed:
+        // the constructor must not build a DataSource with a null password.
+        SecretResolver resolver = mock(SecretResolver.class);
+        when(resolver.resolve("my-db-secret")).thenReturn(null);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> new JdbcLogFileRepository(resolver));
+        assertTrue(ex.getMessage().contains("Cannot retrieve DB password"));
     }
 }
