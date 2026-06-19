@@ -1,0 +1,46 @@
+# Dependabot — automated dependency & security update PRs.
+# GitHub `main` is the source of truth that Wabtec mirrors into their on-prem GitLab,
+# so catching CVE drift here (before it flows downstream) is the right place.
+version: 2
+updates:
+  # Maven dependencies (pom.xml)
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    # Keep noise down: batch routine version bumps into grouped PRs. Security updates
+    # still come through individually and promptly.
+    groups:
+      aws-sdk:
+        patterns:
+          - "software.amazon.awssdk:*"
+          - "com.amazonaws:*"
+      jackson:
+        patterns:
+          - "com.fasterxml.jackson*:*"
+      logging:
+        patterns:
+          - "ch.qos.logback:*"
+          - "org.slf4j:*"
+          - "org.apache.logging.log4j:*"
+      test-dependencies:
+        patterns:
+          - "org.junit*:*"
+          - "org.mockito:*"
+          - "org.testcontainers:*"
+          - "com.h2database:*"
+          - "*system-stubs*"
+          - "*system-lambda*"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
+  # GitHub Actions used by .github/workflows/*
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+</content>
