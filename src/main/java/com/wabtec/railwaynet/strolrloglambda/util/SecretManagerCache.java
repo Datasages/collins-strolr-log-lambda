@@ -21,15 +21,37 @@ import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRespon
 public class SecretManagerCache {
     private static final org.slf4j.Logger LOGGER = LoggerFactory.getLogger(SecretManagerCache.class);
     private static final Duration TTL = Duration.ofMinutes(60);
-    private static final SecretsManagerClient CLIENT = SecretsManagerClient.create();
     private static final Map<String, CachedSecret> CACHE = new ConcurrentHashMap<>();
+
+    // Lazily constructed so the AWS region/credential resolution in
+    // SecretsManagerClient.create() doesn't run at class-load (which would fail in
+    // a test JVM with no AWS region). Package-private + injectable as a test seam —
+    // see setClientForTesting / resetForTesting. Not part of the public API.
+    private static SecretsManagerClient client;
+
+    private static synchronized SecretsManagerClient client() {
+        if (client == null) {
+            client = SecretsManagerClient.create();
+        }
+        return client;
+    }
+
+    /** Test seam: inject a stub SecretsManagerClient. Package-private by design. */
+    static synchronized void setClientForTesting(SecretsManagerClient testClient) {
+        client = testClient;
+    }
+
+    /** Test seam: drop all cached secrets so each test starts from a cold cache. */
+    static void resetForTesting() {
+        CACHE.clear();
+    }
 
     public static String getSecret(String secretId) {
         CachedSecret cs = CACHE.computeIfAbsent(secretId, id -> new CachedSecret());
         synchronized (cs) {
             if (cs.isExpired()) {
                 try {
-                    GetSecretValueResponse resp = CLIENT.getSecretValue(
+                    GetSecretValueResponse resp = client().getSecretValue(
                         GetSecretValueRequest.builder().secretId(secretId).build()
                     );
                     cs.update(resp.secretString());
