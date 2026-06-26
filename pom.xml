@@ -42,7 +42,7 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.17</version>
+                <version>2.0.18</version>
             </dependency>
 
             <!-- Align commons-codec -->
@@ -174,7 +174,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version> <!-- bumped from 1.4.12 (EOL) — CVE-2024-12798 (JaninoEventEvaluator ACE) + CVE-2024-12801 (SaxEventRecorder SSRF) in logback-core -->
+            <version>1.5.36</version> <!-- bumped from 1.4.12 (EOL) — CVE-2024-12798 (JaninoEventEvaluator ACE) + CVE-2024-12801 (SaxEventRecorder SSRF) in logback-core -->
         </dependency>
 
         <!-- SLF4J API -->
