@@ -1,0 +1,33 @@
+name: supply-chain-audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Weekly, because a new advisory against an unchanged pom is otherwise
+  # invisible until the next commit. A failed scheduled run is reported by
+  # GitHub's own notification.
+  schedule:
+    - cron: '29 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# No image-scan job: this Lambda ships as a shaded jar, not a container image,
+# so the pom's dependency tree is the whole supply chain.
+jobs:
+  osv-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # BLOCKING. Resolves the pom's full transitive tree and fails on any
+      # advisory not listed, with a reason and an expiry, in osv-scanner.toml.
+      # Pinned by digest so the gate does not vary run to run.
+      - name: Scan dependencies
+        run: |
+          docker run --rm -v "$PWD:/src:ro" \
+            ghcr.io/google/osv-scanner:v2.6.0@sha256:afd838850ac1a0fcc15ff4a041dc9ba11123c3f0d2666217a5f0fcf9222b55fa \
+            scan source --config=/src/osv-scanner.toml --lockfile=/src/pom.xml
