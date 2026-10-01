@@ -27,7 +27,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.46.14</version> <!-- AWS SDK v2 BOM — bumped from 2.31.63 (currency / transitive CVE hygiene) -->
+                <version>2.55.9</version> <!-- AWS SDK v2 BOM — bumped from 2.46.14; brings netty 4.1.138 (GHSA-c4c3-7fpv-j4q5 et al.) and httpclient5 5.6.4 / httpcore5 5.4.3 -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -52,6 +52,14 @@
                 <version>1.22.0</version>
             </dependency>
 
+            <!-- testcontainers 1.21.4 (the last 1.x) pulls commons-compress 1.24.0 —
+                 GHSA-4265-ccf5-phj5, GHSA-4g9r-vxhx-9pgx. Drop this pin on the move to testcontainers 2. -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-compress</artifactId>
+                <version>1.28.0</version>
+            </dependency>
+
             <!-- Align httpcore -->
             <dependency>
                 <groupId>org.apache.httpcomponents</groupId>
@@ -72,12 +80,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.22.0</version> <!-- bumped from 2.19.0 — GHSA-72hv-8253-57qq (async parser maxNumberLength bypass DoS) -->
+                <version>2.22.3</version> <!-- kept in step with jackson-databind -->
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.22.0</version>
+                <version>2.22.3</version> <!-- bumped from 2.22.0 — GHSA-cxp5-3px4-pw24, GHSA-wv8q-qhhj-9h54 et al. -->
             </dependency>
             <dependency>
                 <groupId>net.bytebuddy</groupId>
@@ -136,7 +144,7 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.7.11</version> <!-- bumped from 42.7.3 — CVE-2026-42198 (SCRAM-SHA-256 PBKDF2 client DoS) -->
+            <version>42.7.13</version> <!-- bumped from 42.7.11 — GHSA-j92g-9f8w-j867 -->
         </dependency>
 
         <!-- JSON utils -->
@@ -174,7 +182,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.18</version> <!-- bumped from 1.4.12 (EOL) — CVE-2024-12798 (JaninoEventEvaluator ACE) + CVE-2024-12801 (SaxEventRecorder SSRF) in logback-core -->
+            <version>1.5.38</version> <!-- bumped from 1.5.18 — logback-core GHSA-25qh-j22f-pwp8, GHSA-jhq6-gfmj-v8fx et al. -->
         </dependency>
 
         <!-- SLF4J API -->
@@ -215,7 +223,7 @@
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-lambda-java-tests</artifactId>
-            <version>1.1.1</version>
+            <version>1.1.2</version> <!-- bumped from 1.1.1 — moves commons-lang3 3.11 to 3.18.0 (GHSA-j288-q9x7-2f5v) -->
             <scope>test</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.junit-pioneer/junit-pioneer -->

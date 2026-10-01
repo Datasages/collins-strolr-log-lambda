@@ -1,0 +1,12 @@
+# Known advisories the supply-chain audit tolerates, each with a reason and an
+# expiry. Everything else a scan reports fails the build.
+#
+# Empty: every finding so far was cleared by a version bump in the pom. An
+# entry belongs here only when no fix exists within the current major line;
+# each takes an `ignoreUntil` deadline and a reason naming what would clear it.
+# Never add one to silence a finding a version bump in the pom would fix.
+#
+# [[IgnoredVulns]]
+# id = "GHSA-xxxx-xxxx-xxxx"
+# ignoreUntil = 2026-12-31T00:00:00Z
+# reason = "<package> <version>. Fixed only in <line>; cleared by <change>."
