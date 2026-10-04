@@ -21,7 +21,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
-                <version>1.17.4</version>
+                <version>1.18.14</version>
             </dependency>
 
             <dependency>
@@ -34,7 +34,7 @@
             <dependency>
                 <groupId>org.junit</groupId>
                 <artifactId>junit-bom</artifactId>
-                <version>5.14.1</version> <!-- bumped from 5.13.1 — CVE-2025-53103 (junit-platform-reporting credential leak) -->
+                <version>5.14.4</version> <!-- bumped from 5.13.1 — CVE-2025-53103 (junit-platform-reporting credential leak) -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -42,14 +42,14 @@
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>2.0.17</version>
+                <version>2.0.20</version>
             </dependency>
 
             <!-- Align commons-codec -->
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.22.0</version>
+                <version>1.22.1</version>
             </dependency>
 
             <!-- testcontainers 1.21.4 (the last 1.x) pulls commons-compress 1.24.0 —
@@ -90,7 +90,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.17.5</version>
+                <version>1.18.14</version>
             </dependency>
 
         </dependencies>
@@ -182,7 +182,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.5.38</version> <!-- bumped from 1.5.18 — logback-core GHSA-25qh-j22f-pwp8, GHSA-jhq6-gfmj-v8fx et al. -->
+            <version>1.6.5</version> <!-- bumped from 1.5.18 — logback-core GHSA-25qh-j22f-pwp8, GHSA-jhq6-gfmj-v8fx et al. -->
         </dependency>
 
         <!-- SLF4J API -->
@@ -239,7 +239,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>5.18.0</version>
+            <version>5.24.0</version>
             <scope>test</scope>
         </dependency>
 
@@ -247,7 +247,7 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>2.4.240</version>
+            <version>2.5.252</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -289,7 +289,7 @@
         <dependency>
             <groupId>com.github.stefanbirkner</groupId>
             <artifactId>system-lambda</artifactId>
-            <version>1.2.0</version>
+            <version>1.2.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -301,7 +301,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.14.0</version>
+                <version>3.16.0</version>
                 <configuration>
                     <source>17</source>
                     <target>17</target>
@@ -311,7 +311,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0-M9</version>
+                <version>3.6.0</version>
                 <configuration>
                     <!-- @{argLine} preserves the JaCoCo agent arg injected by prepare-agent.
                          The prior bare value silently disabled coverage entirely. -->
@@ -324,12 +324,12 @@
                     <dependency>
                         <groupId>org.junit.jupiter</groupId>
                         <artifactId>junit-jupiter-engine</artifactId>
-                        <version>5.14.1</version>
+                        <version>5.14.4</version>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.maven.surefire</groupId>
                         <artifactId>surefire-junit-platform</artifactId>
-                        <version>3.0.0-M9</version>
+                        <version>3.6.0</version>
                     </dependency>
                 </dependencies>
                 
@@ -339,7 +339,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>3.0.0-M9</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <goals>
@@ -360,7 +360,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.6.2</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -381,7 +381,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.11</version>
+                <version>0.8.15</version>
                 <executions>
                     <execution>
                         <goals>
